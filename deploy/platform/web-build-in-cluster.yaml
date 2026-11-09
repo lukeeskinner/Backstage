@@ -1,0 +1,97 @@
+# Run Kunj's web Deployment without a container registry.
+#
+# deploy/web expects two images built from deploy/web/Dockerfile (backstage-web and
+# backstage-web-runtime). We have no registry, so this patch reproduces those Docker
+# stages inside the pod with stock images:
+#   build-web (init)  node: download the pinned commit, npm ci, npm run build, then copy
+#                     the bundle, nginx.conf and apps/web/server into shared volumes
+#   web-runtime       stock node running apps/web/server/index.mjs (the "runtime" stage)
+#   web               stock nginx serving the bundle with deploy/web/nginx.conf (the "web" stage)
+# The VITE_ build settings match the Dockerfile's defaults, except browser OTLP, which stays
+# off until otel-collector has the dash0-credentials Secret.
+#
+# To ship new web code: set CODE_SHA to a pushed commit and restart deployment/web.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      initContainers:
+        - name: build-web
+          image: public.ecr.aws/docker/library/node:22-alpine
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: CODE_REPO
+              value: lukeeskinner/Backstage
+            - name: CODE_SHA
+              value: babe5d28410b2e6841ee39ed36c5dce8af50bd04
+            - name: HOME
+              value: /work/home
+            - name: npm_config_cache
+              value: /work/npm-cache
+            - name: VITE_API_BASE_URL
+              value: /api/v1
+            - name: VITE_MOCK_API
+              value: "false"
+            - name: VITE_ENABLE_VOICE
+              value: "true"
+            - name: VITE_BROWSER_OTLP_URL
+              value: ""
+          command:
+            - sh
+            - -ec
+            - |
+              case "$CODE_SHA" in *[!0-9a-f]*|"") echo "CODE_SHA must be a commit SHA"; exit 1;; esac
+              mkdir -p /work/src "$HOME"
+              wget -qO /work/src.tgz "https://codeload.github.com/$CODE_REPO/tar.gz/$CODE_SHA"
+              tar -xzf /work/src.tgz -C /work/src --strip-components=1
+              cd /work/src/apps/web
+              npm ci --no-audit --no-fund
+              npm run build
+              cp -R dist/. /site/
+              cp /work/src/deploy/web/nginx.conf /nginx-conf/default.conf
+              cp -R server/. /runtime/server/
+              echo "built web at $CODE_REPO@$CODE_SHA"
+          resources:
+            requests: {cpu: 250m, memory: 512Mi}
+            limits: {cpu: "1", memory: 1536Mi}
+          volumeMounts:
+            - {name: work, mountPath: /work}
+            - {name: site, mountPath: /site}
+            - {name: nginx-conf, mountPath: /nginx-conf}
+            - {name: runtime, mountPath: /runtime}
+      containers:
+        - name: web-runtime
+          image: public.ecr.aws/docker/library/node:22-alpine
+          command: [node, server/index.mjs]
+          workingDir: /app
+          env:
+            - name: PRESENCE_HOST
+              value: 127.0.0.1
+            - name: PRESENCE_PORT
+              value: "8787"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          volumeMounts:
+            - {name: runtime, mountPath: /app}
+        - name: web
+          image: public.ecr.aws/nginx/nginx:stable-alpine
+          volumeMounts:
+            - {name: site, mountPath: /usr/share/nginx/html, readOnly: true}
+            - {name: nginx-conf, mountPath: /etc/nginx/conf.d, readOnly: true}
+      volumes:
+        - {name: work, emptyDir: {}}
+        - {name: site, emptyDir: {}}
+        - {name: nginx-conf, emptyDir: {}}
+        - {name: runtime, emptyDir: {}}

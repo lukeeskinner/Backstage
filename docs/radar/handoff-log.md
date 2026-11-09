@@ -105,3 +105,28 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Verified** · Badge tests passed (35), including new overlay and job checks. `make check` passed. Cluster evidence is from Radar `wait_for` and `get_workload_logs` on the Jobs and Deployments named above.
 - **Open** · In-cluster diagnosis is `mock` until Radar issues a service token. The badge queue is in memory, so restarting badge-control drops queued jobs. The `dash0-credentials` Secret and the web/dash0 overlay entries are Kunj's dependencies. The browser HTTPS path for the stage mic is still open.
 - **Reviewed** · main at ab2798a: Luke's Elastic and Radar Secret entry, Kunj's web, observability and codex handoffs (`docs/demo/handoff-log.md`, `dependencies.md`, `codex-handoff.md`), and `docs/handoffs/ali-connect-cluster.md`.
+
+## 2026-11-09 — Web board and collector Service deployed to the cluster
+
+- **Branch or PR** · `ali/deploy-web`, based on main at babe5d2.
+- **Changes and why** · Kunj's handoff asked Ali to publish `backstage-web` and `backstage-web-runtime` and add web to the platform overlay. There is no container registry or Docker, so `deploy/platform/web-build-in-cluster.yaml` patches Kunj's Deployment `web` without editing `deploy/web`:
+  - The init container `build-web` (stock `node:22-alpine`) downloads the pinned commit `babe5d28410b2e6841ee39ed36c5dce8af50bd04`, runs `npm ci` and `npm run build` with the Dockerfile's VITE settings, and copies the bundle, `deploy/web/nginx.conf` and `apps/web/server`.
+  - `web-runtime` runs stock node on the copied server, as uid 1000.
+  - `web` runs stock `nginx:stable-alpine` with Kunj's config.
+  - `deploy/platform/kustomization.yaml` now includes `../dash0` and `../web`. `otel-collector` is patched to 0 replicas until `dash0-credentials` exists; its Service still exists, so nginx starts. Browser OTLP is off in the build (`VITE_BROWSER_OTLP_URL` empty) until then.
+- **Live state in `team-backstage`** · Applied only the new objects through Radar: `ConfigMap/otel-collector-config`, `Service/otel-collector`, `Deployment/otel-collector` (0 replicas), `Service/web`, `Deployment/web` (1/1). Badge and incident objects were not reapplied.
+  - Build log: 158 packages, 383 modules, built at babe5d2.
+  - Runtime log: "OpenAI key missing". The optional `web-openai` Secret isn't created, so voice is unavailable.
+- **Verified** · In-cluster Job `web-smoke`:
+  - `/healthz` 200, `/` 200 with the app root, `/stage.html` 200.
+  - `/api/v1/incidents` through nginx returned 200 with the organizer token, listing the rehearsal's `badge_stall:resolved` from Elastic. It returned 401 without a token.
+  - `kubectl kustomize deploy/platform` renders 14 objects. Badge tests passed (35), and so did `make check`.
+- **Impact by lane** ·
+  - **Kunj:** the board runs in the cluster from your manifests unchanged. To ship a new web build, update `CODE_SHA` in `deploy/platform/web-build-in-cluster.yaml` (ask Ali) and restart `deployment/web`. Collector CORS is still `http://localhost:5173`.
+  - **Anyone with Dash0 access:** create `dash0-credentials`, then remove the replicas patch and set `VITE_BROWSER_OTLP_URL=/v1/traces`.
+- **Open** ·
+  - **No external access.** The cluster has no IngressClass. Reaching the board needs a port-forward with a kubeconfig, or a `LoadBalancer` Service, which would be public. That's a team decision.
+  - The `dash0-credentials` and `web-openai` Secrets don't exist yet.
+  - HTTPS for the stage mic is still open.
+  - In-cluster diagnosis is still `mock`, and the badge queue is in memory.
+- **Reviewed** · main at babe5d2: Kunj's "Kubernetes web runtime and server-only OpenAI Secret" (9cc5883), the Unslop UI and History entries, Luke's log through ab2798a, `deploy/web` and `deploy/dash0` on main.

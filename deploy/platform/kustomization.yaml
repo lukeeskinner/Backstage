@@ -1,12 +1,24 @@
 # Aggregate overlay for the team-backstage namespace on cluster "backstage".
 # The namespace already exists (provisioned by the event), so it is not created here.
-# Secrets are created out of band and never committed: badge-secrets (deploy/badge)
-# and incident-secrets (deploy/incident). Both must exist before applying.
-# Still to add once their prerequisites exist (see docs/radar/handoff-log.md):
-#   ../dash0 (needs the dash0-credentials Secret), then ../web (needs otel-collector and incident-api)
+# Secrets are created out of band and never committed: badge-secrets (deploy/badge),
+# incident-secrets (deploy/incident), and later dash0-credentials and the optional web-openai.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: team-backstage
 resources:
   - ../badge
   - ../incident
+  - ../dash0
+  - ../web
+patches:
+  # No registry: build and serve web from stock images (see the file for details).
+  - path: web-build-in-cluster.yaml
+  # The collector needs the dash0-credentials Secret, which does not exist yet. Its Service
+  # still exists, which is all nginx needs to start. Remove this patch once the Secret is created.
+  - target:
+      kind: Deployment
+      name: otel-collector
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 0
