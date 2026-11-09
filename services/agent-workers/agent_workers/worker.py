@@ -193,6 +193,7 @@ class Worker:
         self.sessions = self.settings.index_prefix + "-sessions"
         self.ledger = self.settings.index_prefix + "-agent-ledger"
         self._recent = deque()
+        self._sim_builds = 0
         self.last_outcome = "idle"
 
     @contextmanager
@@ -362,9 +363,10 @@ class Worker:
                 owned_update({})
                 mode = self.settings.commit_mode
                 if source == "simulator" and mode == "github":
-                    ordinal = self.client.count(index=self.ledger, query={"bool": {"filter": [
-                        {"term": {"step": "claim"}}, {"term": {"outcome": "ok"}}, {"term": {"source": "simulator"}}]}})["count"]
-                    if ordinal % self.settings.sim_commit_every:
+                    # Single-worker local cadence avoids stale search counts. Restarting
+                    # conservatively starts another full batch before the next commit.
+                    self._sim_builds += 1
+                    if self._sim_builds % self.settings.sim_commit_every:
                         mode = "dry-run"
                 commit = {"mode": "dry-run", "sha": None, "url": None, "branch": BRANCH,
                           "path": f"generated/sites/{attendee_id}/index.html", "message": None, "additions": len(html.splitlines())}
