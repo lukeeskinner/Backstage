@@ -11,6 +11,7 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from time import monotonic
 
 from elasticsearch import NotFoundError
 from fastapi import Depends, Query, Request
@@ -145,6 +146,8 @@ class Pivot:
     def __init__(self, client, prefix, telemetry, clock):
         self.client, self.prefix, self.telemetry, self.clock = client, prefix, telemetry, clock
         self.max_builds = int(os.getenv("PIVOT_MAX_BUILDS_PER_HOUR", "300"))
+        # Opt-in: needs an inference endpoint behind a semantic_text field. Any failure turns it off.
+        self.semantic = os.getenv("PIVOT_SEMANTIC", "off").lower() == "on"
 
     def alias(self, name):
         return f"{self.prefix}-{name}"
@@ -168,7 +171,7 @@ class Pivot:
 
     def provision(self, seed=True, pipelines=False):
         """Create missing indices and aliases, never altering an existing one. Returns what happened."""
-        report = {"created": [], "existing": [], "pipelines": [], "seeded": 0}
+        report = {"created": [], "existing": [], "pipelines": [], "semantic": "off", "seeded": 0}
         for name in INDICES:
             alias = self.alias(name)
             if self.client.indices.exists_alias(name=alias):
@@ -186,6 +189,13 @@ class Pivot:
                     report["pipelines"].append(self.alias(name))
                 except Exception:
                     report["pipelines"].append(self.alias(name) + ":denied")
+        if self.semantic:
+            try:
+                self.client.indices.put_mapping(index=self.alias("sessions"),
+                                                properties={"semantic": {"type": "semantic_text"}})
+                report["semantic"] = "mapped"
+            except Exception:
+                self.semantic, report["semantic"] = False, "denied"
         if seed:
             report["seeded"] = self.seed_sessions()
         return report
@@ -200,6 +210,8 @@ class Pivot:
             start = now + timedelta(minutes=session.pop("offset_minutes"))
             session["starts_at"] = stamp(start)
             session["ends_at"] = stamp(start + timedelta(minutes=session.pop("duration_minutes")))
+            if self.semantic:
+                session["semantic"] = f"{session['title']}. {session['abstract']} {' '.join(session['tags'])}"
             operations += [{"index": {"_index": self.alias("sessions"), "_id": session["session_id"]}}, session]
         if operations:
             result = self.client.bulk(operations=operations, refresh=True)
@@ -227,10 +239,29 @@ class Pivot:
         trending = self.trending(now)
         if trending:
             should.append({"terms": {"session_id": trending, "boost": 2.0, "_name": "trending"}})
-        result = self.search("recommend", "sessions", size=6, sort=[{"_score": "desc"}, {"starts_at": "asc"}],
-                             query={"bool": {"should": should, "minimum_should_match": 0,
-                                             "filter": [{"range": {"ends_at": {"gte": stamp(now)}}}]}})
-        order = {"interest": 0, "goal": 1, "level": 2, "trending": 3}
+        meaning = {"semantic": {"field": "semantic", "_name": "semantic", "query": " ".join(
+            [*answers["interests"], answers["level"], answers.get("goal", "")]).strip()}}
+
+        def run(clauses):
+            return self.search("recommend", "sessions", size=6, sort=[{"_score": "desc"}, {"starts_at": "asc"}],
+                               query={"bool": {"should": clauses, "minimum_should_match": 0,
+                                               "filter": [{"range": {"ends_at": {"gte": stamp(now)}}}]}})
+
+        started, outcome = monotonic(), "success"
+        try:
+            try:
+                result = run([*should, meaning] if self.semantic else should)
+            except ApiError:
+                if not self.semantic:
+                    raise
+                self.semantic = False
+                result = run(should)
+        except ApiError:
+            outcome = "error"
+            raise
+        finally:
+            self.telemetry.duration("backstage.pivot.recs.duration", monotonic() - started, {"outcome": outcome})
+        order = {"interest": 0, "goal": 1, "level": 2, "trending": 3, "semantic": 4}
         picks = []
         for hit in result.get("hits", {}).get("hits", []):
             codes = sorted((code for code in hit.get("matched_queries") or [] if code in order), key=order.get)
@@ -262,17 +293,41 @@ class Pivot:
         self.call("survey.index", lambda: self.client.index(
             index=self.alias("surveys"), id=attendee_id, document=document, op_type="create"))
         self.telemetry.event("pivot.survey", outcome="queued", count=len(picks))
+        self.telemetry.count("backstage.pivot.surveys", {"source": source})
         return {"attendee_id": attendee_id, "site": {"status": "queued"},
                 "recommendations": [{**session, "score": score, "reasons": reason_labels(codes, answers, session)}
                                     for session, score, codes in picks]}
 
-    def survey(self, attendee_id):
+    def survey_record(self, attendee_id):
         if not ATTENDEE_ID.fullmatch(attendee_id):
             raise not_found()
         try:
-            return self.call("survey.get", lambda: self.client.get(index=self.alias("surveys"), id=attendee_id))["_source"]
+            return self.call("survey.get", lambda: self.client.get(index=self.alias("surveys"), id=attendee_id))
         except NotFoundError:
             raise not_found()
+
+    def survey(self, attendee_id):
+        return self.survey_record(attendee_id)["_source"]
+
+    def release_stuck_build(self, attendee_id, record, site):
+        """A build silent for 90 s goes back to the queue once, then fails. Lost races change nothing."""
+        try:
+            updated = datetime.fromisoformat(str(site.get("updated_at")).replace("Z", "+00:00"))
+        except ValueError:
+            return site
+        now = self.clock()
+        if site.get("status") != "building" or now - updated <= timedelta(seconds=90):
+            return site
+        attempt = site.get("attempt")
+        change = {"status": "queued" if isinstance(attempt, int) and attempt < 2 else "failed", "updated_at": stamp(now)}
+        try:
+            self.call("survey.release", lambda: self.client.update(
+                index=self.alias("surveys"), id=attendee_id, doc={"site": change},
+                if_seq_no=record.get("_seq_no"), if_primary_term=record.get("_primary_term")))
+        except (ApiError, NotFoundError):
+            return site
+        self.telemetry.event("pivot.release", outcome=change["status"])
+        return {**site, **change}
 
     def sessions(self, ids):
         if not ids:
@@ -282,11 +337,12 @@ class Pivot:
                 if hit.get("_source", {}).get("session_id")}
 
     def attendee(self, attendee_id):
-        survey = self.survey(attendee_id)
+        record = self.survey_record(attendee_id)
+        survey = record["_source"]
         answers = {key: value for key, value in survey.get("answers", {}).items() if key != "goal"}
         stored = survey.get("recommendations") or []
         details = self.sessions([item["session_id"] for item in stored])
-        site = survey.get("site") or {}
+        site = self.release_stuck_build(attendee_id, record, survey.get("site") or {})
         progress = []
         if site.get("run_id"):
             result = self.search("progress", "agent-ledger", size=50, sort=[{"seq": "asc"}],
@@ -320,6 +376,7 @@ class Pivot:
                     "interests": answers.get("interests", []), "level": answers.get("level"),
                     "source": survey.get("source")}
         self.call("interaction.index", lambda: self.client.index(index=self.alias("interactions"), document=document))
+        self.telemetry.count("backstage.pivot.interactions", {"action": body["action"], "source": str(survey.get("source"))})
         return {"accepted": True}
 
     def trends(self, window, interval, interest, source):
