@@ -71,6 +71,19 @@ def not_found():
     return ApiError(404, "not_found", "We could not find that site.")
 
 
+def safe_commit_url(value, sha):
+    if not isinstance(value, str) or not isinstance(sha, str):
+        return None
+    match = re.fullmatch(r"https://github\.com/lukeeskinner/Backstage/commit/([a-f0-9]{40}(?:[a-f0-9]{24})?)", value)
+    return value if match and match[1] == sha else None
+
+
+def site_view(site, fields=SITE_FIELDS):
+    view = {field: site.get(field) for field in fields}
+    view["commit_url"] = safe_commit_url(site.get("commit_url"), site.get("commit_sha"))
+    return view
+
+
 def load_definition(name):
     return json.loads((DEFINITIONS / f"{name}-v1.json").read_text(encoding="utf-8"))
 
@@ -165,7 +178,10 @@ class Pivot:
 
     def search(self, operation, name, **body):
         try:
-            return self.call(operation, lambda: self.client.search(index=self.alias(name), **body))
+            result = self.call(operation, lambda: self.client.search(index=self.alias(name), **body))
+            if result.get("timed_out") or (result.get("_shards") or {}).get("failed", 0):
+                raise unavailable()
+            return result
         except NotFoundError:
             raise unavailable()
 
@@ -356,7 +372,7 @@ class Pivot:
                                  "reasons": reason_labels(item.get("reasons") or [], survey.get("answers", {}),
                                                           details[item["session_id"]])}
                                 for item in stored if item["session_id"] in details],
-            "site": {field: site.get(field) for field in SITE_FIELDS},
+            "site": site_view(site),
             "progress": progress,
         }
 
@@ -401,16 +417,28 @@ class Pivot:
             "roles": {"terms": {"field": "answers.role"}}, "levels": {"terms": {"field": "answers.level"}},
             "vibes": {"terms": {"field": "answers.vibe"}}, "sources": {"terms": {"field": "source"}},
             "site_status": {"terms": {"field": "site.status"}},
-            "recommended": {"terms": {"field": "recommendations.session_id", "size": 40}}})
+            "recommended": {"terms": {"field": "recommendations.session_id", "size": 40}},
+            **({"cohort": {"terms": {"field": "attendee_id", "size": 10000}}} if interest else {})})
         taps = self.search("trends.interactions", "interactions", size=0, track_total_hits=True,
                            query={"bool": {"filter": tap_filter}}, aggs={
             "engaged": {"filter": {"terms": {"action": ["open", "save"]}},
                         "aggs": {"attendees": {"cardinality": {"field": "attendee_id"}}}},
             "sessions": {"terms": {"field": "session_id", "size": 40},
                          "aggs": {"actions": {"terms": {"field": "action"}}}}})
+        ledger_filters = [{"range": {"@timestamp": {"gte": since}}}, *slices]
+        if interest:
+            # Surveys are immutable profiles. Resolve the same time/source/interest cohort
+            # once, then apply it to every ledger aggregation (including old untagged events).
+            cohort = (surveys.get("aggregations") or {}).get("cohort") or {}
+            attendee_ids = [row["key"] for row in cohort.get("buckets", [])]
+            total = ((surveys.get("hits") or {}).get("total") or {}).get("value", 0)
+            if (cohort.get("sum_other_doc_count", 0) or cohort.get("doc_count_error_upper_bound", 0)
+                    or total != len(attendee_ids)):
+                raise unavailable()
+            ledger_filters.append({"terms": {"attendee_id": attendee_ids}} if attendee_ids else {"match_none": {}})
         published = {"term": {"step": "publish"}}
         ledger = self.search("trends.ledger", "agent-ledger", size=0,
-                             query={"bool": {"filter": [{"range": {"@timestamp": {"gte": since}}}, *slices]}}, aggs={
+                             query={"bool": {"filter": ledger_filters}}, aggs={
             "builds": {"filter": published, "aggs": {
                 "over_time": {"date_histogram": {"field": "@timestamp", **histogram},
                               "aggs": {"outcomes": {"terms": {"field": "outcome"}}}},
@@ -454,7 +482,8 @@ class Pivot:
             "agent": {
                 "builds_over_time": series(builds.get("over_time"), "outcomes"),
                 "latency_ms": {"p50": latency.get("50.0"), "p95": latency.get("95.0")},
-                "decisions": {row["key"]: buckets(row, "values") for row in names},
+                "decisions": {"theme": [], "layout": [], "tone": [],
+                              **{row["key"]: buckets(row, "values") for row in names}},
                 "builders": buckets(builds, "builders"),
                 "commit_modes": buckets(ledger_aggs.get("commits") or {}, "modes"),
             },
@@ -463,6 +492,9 @@ class Pivot:
     def trail_item(self, hit, link_template):
         source = hit.get("_source", {})
         item = {field: source.get(field) for field in TRAIL_FIELDS}
+        if isinstance(item.get("commit"), dict):
+            commit = item["commit"]
+            item["commit"] = {**commit, "url": safe_commit_url(commit.get("url"), commit.get("sha"))}
         item["at"] = source.get("@timestamp")
         if "highlight" in hit:
             item["highlight"] = hit["highlight"]
@@ -522,7 +554,7 @@ class Pivot:
             answers = stored.get("answers", {})
             survey = {**{key: answers.get(key) for key in ("role", "interests", "level", "vibe", "accessibility")},
                       "source": stored.get("source"), "created_at": stored.get("created_at")}
-            site = {field: (stored.get("site") or {}).get(field) for field in SITE_FIELDS if field not in ("html", "spec")}
+            site = site_view(stored.get("site") or {}, [field for field in SITE_FIELDS if field not in ("html", "spec")])
         except ApiError:
             pass
         return {"run_id": run_id, "attendee_id": first.get("attendee_id"), "survey": survey, "site": site,

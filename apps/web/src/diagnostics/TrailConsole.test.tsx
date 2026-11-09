@@ -155,3 +155,40 @@ describe("TrailConsole", () => {
     expect(searchTrail).not.toHaveBeenCalled();
   });
 });
+
+describe("TrailConsole unavailable summaries and commit links", () => {
+  it("keeps an orphan run timeline visible when survey and site are null", async () => {
+    const user = userEvent.setup();
+    const { pivot } = fakePivot();
+    const orphan: import("../api/pivot").TrailRunResponse = {
+      run_id: item.run_id, attendee_id: item.attendee_id, survey: null, site: null,
+      trace_id: null, trace_url: null, events: [{ ...item, title: "Orphan timeline event" }],
+    };
+    pivot.getTrailRun = async () => orphan;
+    render(<TrailConsole pivot={pivot} />);
+    await user.click(await screen.findByRole("button", { name: /^Open run/ }));
+    expect(await screen.findByRole("list", { name: "Run timeline" })).toHaveTextContent("Orphan timeline event");
+    expect(screen.getByText(/Site details unavailable/)).toBeInTheDocument();
+  });
+
+  it.each([
+    "http://github.com/lukeeskinner/Backstage/commit/" + "a".repeat(40),
+    "https://evil.test/lukeeskinner/Backstage/commit/" + "a".repeat(40),
+    "https://github.com.evil.test/lukeeskinner/Backstage/commit/" + "a".repeat(40),
+    "https://github.com/other/Backstage/commit/" + "a".repeat(40),
+    "https://github.com/lukeeskinner/Backstage/commit/" + "b".repeat(40),
+    "https://github.com/lukeeskinner/Backstage/commit/" + "a".repeat(40) + "?token=x",
+  ])("renders an unapproved commit URL as plain SHA: %s", async (url) => {
+    const { pivot } = fakePivot({ ...response, items: [{ ...item, commit: { mode: "github", sha: "a".repeat(40), url } }] });
+    render(<TrailConsole pivot={pivot} />);
+    expect(await screen.findByText("aaaaaaa", { selector: "code" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "aaaaaaa" })).toBeNull();
+  });
+
+  it("links the exact repository commit matching its SHA", async () => {
+    const url = "https://github.com/lukeeskinner/Backstage/commit/" + "a".repeat(40);
+    const { pivot } = fakePivot({ ...response, items: [{ ...item, commit: { mode: "github", sha: "a".repeat(40), url } }] });
+    render(<TrailConsole pivot={pivot} />);
+    expect(await screen.findByRole("link", { name: "aaaaaaa" })).toHaveAttribute("href", url);
+  });
+});
