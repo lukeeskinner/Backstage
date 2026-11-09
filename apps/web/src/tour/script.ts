@@ -5,6 +5,8 @@ export interface TourContext {
   raise(): void;
   raiseBackground(scenario: BackgroundScenario): void;
   wave(): void;
+  pause(): void;
+  resume(): void;
 }
 
 export interface TourStep {

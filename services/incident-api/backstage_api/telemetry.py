@@ -43,10 +43,12 @@ class Telemetry:
         meter = self.meter_provider.get_meter('backstage.incident-api')
         self.counters = {name: meter.create_counter(name) for name in (
             'backstage.http.requests', 'backstage.persistence.operations',
-            'backstage.evidence.documents', 'backstage.incident.transitions')}
+            'backstage.evidence.documents', 'backstage.incident.transitions',
+            'backstage.pivot.surveys', 'backstage.pivot.interactions')}
         self.durations = {name: meter.create_histogram(name, unit='s') for name in (
             'backstage.http.request.duration', 'backstage.elasticsearch.request.duration',
-            'backstage.evidence.projection.duration', 'backstage.evidence.search.duration')}
+            'backstage.evidence.projection.duration', 'backstage.evidence.search.duration',
+            'backstage.pivot.recs.duration')}
         self.meter = meter
         if os.getenv('OTEL_ENABLED', '').lower() == 'true':
             # Exporters use standard OTEL_EXPORTER_OTLP_* variables. No global providers,

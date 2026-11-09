@@ -144,11 +144,15 @@ export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, o
   }, [index]);
 
   useEffect(() => {
-    const synth = speech();
-    if (!synth) return;
-    if (paused) synth.pause();
-    else synth.resume();
-  }, [paused]);
+    if (paused) {
+      context.pause();
+      speech()?.pause();
+    } else {
+      context.resume();
+      speech()?.resume();
+    }
+    return () => context.resume();
+  }, [paused, context]);
 
   useEffect(() => () => {
     speech()?.cancel();

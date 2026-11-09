@@ -16,6 +16,9 @@ event and trace IDs, search terms, credentials, and room names.
 | `backstage.evidence.search.duration` | Histogram / seconds | outcome |
 | `backstage.evidence.projection.lag` | Observable gauge / revisions (`1`) | none |
 | `backstage.incident.transitions` | Counter / transitions | event.type, state, storage.mode |
+| `backstage.pivot.surveys` | Counter / surveys | source |
+| `backstage.pivot.interactions` | Counter / taps | action, source |
+| `backstage.pivot.recs.duration` | Histogram / seconds | outcome |
 
 Persistence `operation` is `load`, `save`, `search`, or `project`; `outcome=error`
 counts failed operations. Search error rate is the persistence-error panel's
@@ -43,3 +46,5 @@ References checked 2026-11-09:
 
 Validate final PromQL and imported panel output against the actual dataset during
 cloud QA. YAML parsing alone cannot establish the provider accepted this resource.
+
+The three `backstage.pivot.*` instruments belong to the attendee-site routes and feed `dashboard-attendee-pipeline.yaml`. Their attributes never include an attendee ID, session ID or answer text. Pivot Elasticsearch calls reuse the persistence instruments with `operation` values that start with `pivot.`. That dashboard has not been created in Dash0 or checked against live series.

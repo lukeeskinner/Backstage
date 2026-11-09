@@ -50,7 +50,8 @@ def configured_checkpoint():
 
 
 def create_app(*, clock=utc_now, identities=None, tracer_provider=None, checkpoint=None, badge_control=None,
-               evidence_projection=None, meter_provider=None, logger_provider=None):
+               evidence_projection=None, meter_provider=None, logger_provider=None,
+               pivot_client=None, pivot_prefix=None):
     if identities is None:
         identities = TypeAdapter(dict[str, Identity]).validate_json(os.getenv("AUTH_TOKENS_JSON", "{}"))
     telemetry = Telemetry(tracer_provider=tracer_provider, meter_provider=meter_provider,
@@ -344,5 +345,23 @@ def create_app(*, clock=utc_now, identities=None, tracer_provider=None, checkpoi
     ):
         validate_action(body, key)
         return in_state(lambda store, now: store.apply_action(incident_id, actor, key, body, now))
+
+    # Attendee-site pivot: optional, and never allowed to stop the incident API from starting.
+    if pivot_client is None and os.getenv("PIVOT_ENABLED", "false").lower() == "true":
+        if isinstance(runtime.checkpoint, ElasticsearchCheckpoint):
+            pivot_client = runtime.checkpoint.client
+    if pivot_client is not None:
+        try:
+            from .pivot import mount_pivot
+            pivot = mount_pivot(app, client=pivot_client, telemetry=telemetry, caller=caller, clock=clock,
+                                prefix=pivot_prefix or os.getenv("ELASTICSEARCH_INDEX_PREFIX", "backstage"))
+            if os.getenv("PIVOT_AUTO_BOOTSTRAP", "false").lower() == "true":
+                try:
+                    pivot.provision(seed=True, pipelines=True)
+                    telemetry.event("pivot.bootstrap", outcome="ready")
+                except Exception:
+                    telemetry.event("pivot.bootstrap", outcome="failed")
+        except Exception:
+            telemetry.event("pivot.mount", outcome="disabled")
 
     return app

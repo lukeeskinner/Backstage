@@ -1,0 +1,53 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "_meta": {
+      "purpose": "Demo session catalog. One document per session, _id = session_id. tags and track are text for matching with a .raw keyword for filters and aggregations."
+    },
+    "properties": {
+      "session_id": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text"
+      },
+      "abstract": {
+        "type": "text"
+      },
+      "track": {
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "tags": {
+        "type": "text",
+        "fields": {
+          "raw": {
+            "type": "keyword"
+          }
+        }
+      },
+      "level": {
+        "type": "keyword"
+      },
+      "format": {
+        "type": "keyword"
+      },
+      "room": {
+        "type": "keyword"
+      },
+      "starts_at": {
+        "type": "date"
+      },
+      "ends_at": {
+        "type": "date"
+      },
+      "synthetic": {
+        "type": "boolean"
+      }
+    }
+  }
+}

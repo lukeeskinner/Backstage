@@ -60,6 +60,13 @@ export interface MockOptions {
 /** Incident types the guided demo can raise beside the overflow incident. They progress without user actions. */
 export type BackgroundScenario = "stage_av" | "badge_stall";
 
+interface SimulationTimer {
+  remainingMs: number;
+  dueAt: number;
+  run: () => void;
+  handle?: ReturnType<typeof setTimeout>;
+}
+
 interface IncidentRecord {
   incident: Incident;
   events: ProtocolEvent[];
@@ -120,7 +127,8 @@ export class MockIncidentApi {
   private events!: ProtocolEvent[];
   private idempotency = new Map<string, { hash: string; response: MockResponse }>();
   private observed: Signal[] = [];
-  private timers = new Set<ReturnType<typeof setTimeout>>();
+  private timers = new Set<SimulationTimer>();
+  private paused = false;
   private dropNext = false;
   private hidden = false;
   private background = new Map<string, IncidentRecord>();
@@ -144,7 +152,7 @@ export class MockIncidentApi {
   }
 
   reset(): void {
-    this.timers.forEach((timer) => clearTimeout(timer));
+    this.timers.forEach((timer) => clearTimeout(timer.handle));
     this.timers.clear();
     this.idempotency.clear();
     this.observed = [];
@@ -463,11 +471,39 @@ export class MockIncidentApi {
     });
   }
 
-  private schedule(delayMs: number, run: () => void): void {
-    const timer = setTimeout(() => {
-      this.timers.delete(timer);
-      run();
-    }, delayMs);
+  /** Freeze all scenario work, retaining each timer's remaining delay. */
+  pause(): void {
+    if (this.paused) return;
+    this.paused = true;
+    for (const timer of this.timers) {
+      timer.remainingMs = Math.max(0, timer.dueAt - Date.now());
+      clearTimeout(timer.handle);
+      timer.handle = undefined;
+    }
+  }
+
+  resume(): void {
+    if (!this.paused) return;
+    this.paused = false;
+    for (const timer of this.timers) this.arm(timer);
+  }
+
+  /** Rehearsal injection shares the pausable clock used by incident transitions. */
+  schedule(delayMs: number, run: () => void): () => void {
+    const timer: SimulationTimer = { remainingMs: delayMs, dueAt: Date.now() + delayMs, run };
     this.timers.add(timer);
+    if (!this.paused) this.arm(timer);
+    return () => {
+      clearTimeout(timer.handle);
+      this.timers.delete(timer);
+    };
+  }
+
+  private arm(timer: SimulationTimer): void {
+    timer.dueAt = Date.now() + timer.remainingMs;
+    timer.handle = setTimeout(() => {
+      this.timers.delete(timer);
+      timer.run();
+    }, timer.remainingMs);
   }
 }
