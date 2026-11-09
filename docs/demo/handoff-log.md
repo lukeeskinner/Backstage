@@ -274,3 +274,10 @@
 - **Branch/refs** · kunj/video-incident-rehearsal, merged main213495b preserving PR29 and all appended handoffs.
 - **Changes** · Merge only plus this status entry; runtime source remains publishedf05eb2d. Existing cluster spec was copied and only CODE_SHA plus two server Secret references changed, Force off; Kubernetes dry run accepted1 resource, then apply succeeded. Generation10/new Pod web-6b7fc4cdf6-5kcnw: build-web complete, install-vision running. Historical Radar crash-loop alert does not match this Pod’s current initialization state.
 - **Verification** · Corrected Dockerfile path to deploy/web/Dockerfile after the extra check used apps/web/Dockerfile; the production image now builds.149 frontend/34 Node, TypeScript/build, manifest validation passed. No success claim for the hosted lifecycle until the new Pod is ready and its controls are exercised.
+
+
+## 2026-11-09 — Preserve local proxy origin checks
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Finding/fix** · Gitar identified that Vite changeOrigin rewrites Host while the browser retains Origin, making valid local rehearsal POSTs fail403. Preserve the original Host for /demo-api. The hosted nginx path already preserves Host and is unaffected; runtime staysf05eb2d.
+- **Verified** · A real Vite server proxying the actual Node routes accepts same-origin POST202 and rejects foreign Origin403. Production Docker build and nginx -t pass. Shared Pod web-6b7fc4cdf6-5kcnw now has both init containers Completed and all3runtime containers Ready; HTTPS controls started runf159236d-10c6-4e84-b8ac-7357df8a719f, actual YOLO9people/277ms, producer sample receipts committed. Lifecycle follow-up pending real30s/60s windows. No simulated success.
