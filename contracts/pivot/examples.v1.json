@@ -1,0 +1,338 @@
+{
+  "$comment": "Pivot contract v1 example payloads. Field names and enums are the contract; values are illustrative and the session titles are synthetic. Mock against this file until the live API answers. See README.md in this directory.",
+  "version": 1,
+  "enums": {
+    "role": ["attendee", "speaker", "staff", "organizer"],
+    "interests": ["observability", "platform-engineering", "ai-agents", "security", "networking", "storage-data", "gitops-delivery", "finops-sustainability", "wasm-edge", "community-careers"],
+    "level": ["new", "practitioner", "expert"],
+    "vibe": ["calm", "bold", "playful"],
+    "accessibility": ["large_text", "reduced_motion", "high_contrast"],
+    "source": ["qr", "simulator"],
+    "site_status": ["queued", "building", "ready", "failed"],
+    "builder": ["template", "openai"],
+    "commit_mode": ["dry-run", "github"],
+    "reason_code": ["interest", "goal", "level", "trending", "semantic"],
+    "interaction_action": ["open", "save", "dismiss"],
+    "ledger_kind": ["decision", "action", "commit", "log", "error"],
+    "ledger_step": ["claim", "retrieve", "plan", "write", "validate", "commit", "publish"],
+    "ledger_outcome": ["ok", "fallback", "retry", "rejected", "error"],
+    "ledger_tool": ["elasticsearch", "openai", "template", "validator", "github"],
+    "decision_name": ["theme", "layout", "tone", "featured"],
+    "decision_values": {
+      "$comment": "The agent picks one named option per decision so trends can chart it. Colors, copy and markup stay free.",
+      "theme": ["calm-paper", "bold-contrast", "playful-pop", "high-contrast"],
+      "layout": ["schedule-first", "topic-clusters", "single-focus"],
+      "tone": ["direct", "warm", "energetic"]
+    }
+  },
+  "http": {
+    "POST /api/v1/attendee/surveys": {
+      "request": {
+        "source": "qr",
+        "answers": {
+          "role": "attendee",
+          "interests": ["observability", "platform-engineering", "ai-agents"],
+          "level": "practitioner",
+          "goal": "Find talks on cutting alert noise",
+          "vibe": "bold",
+          "accessibility": ["large_text"]
+        }
+      },
+      "response_201": {
+        "attendee_id": "att_k7m2qx4n3w5p",
+        "site": {"status": "queued"},
+        "recommendations": [
+          {
+            "session_id": "sess-014",
+            "title": "Alert Fatigue Is a Design Bug: Fewer Pages, Better Signals",
+            "abstract": "How one platform team cut paging volume by rewriting alerts around user-facing objectives instead of machine symptoms.",
+            "track": "observability",
+            "tags": ["observability", "alerting", "slo"],
+            "level": "practitioner",
+            "format": "talk",
+            "room": "Room 255 BC",
+            "starts_at": "2026-11-10T00:00:00Z",
+            "ends_at": "2026-11-10T00:35:00Z",
+            "synthetic": true,
+            "score": 12.4,
+            "reasons": [
+              {"code": "interest", "label": "Matches your interest in observability"},
+              {"code": "goal", "label": "Close to what you said you want from today"},
+              {"code": "level", "label": "Pitched at practitioners"}
+            ]
+          },
+          {
+            "session_id": "sess-031",
+            "title": "Golden Paths That People Actually Walk",
+            "abstract": "Lessons from two years of running an internal developer platform, including the templates nobody used and why.",
+            "track": "platform-engineering",
+            "tags": ["platform-engineering", "developer-experience"],
+            "level": "practitioner",
+            "format": "talk",
+            "room": "Room 151",
+            "starts_at": "2026-11-10T00:45:00Z",
+            "ends_at": "2026-11-10T01:20:00Z",
+            "synthetic": true,
+            "score": 9.8,
+            "reasons": [
+              {"code": "interest", "label": "Matches your interest in platform engineering"},
+              {"code": "trending", "label": "Popular with other attendees right now"}
+            ]
+          }
+        ]
+      },
+      "response_422": {"error": {"code": "invalid_payload", "message": "Choose one to three interests from the list."}},
+      "response_429": {"error": {"code": "rate_limited", "message": "We are building a lot of sites right now. Try again in a minute."}}
+    },
+    "GET /api/v1/attendee/{attendee_id}": {
+      "$comment": "recommendations[] uses the same item shape as the survey response. answers never includes goal.",
+      "response_200_building": {
+        "attendee_id": "att_k7m2qx4n3w5p",
+        "answers": {"role": "attendee", "interests": ["observability", "platform-engineering", "ai-agents"], "level": "practitioner", "vibe": "bold", "accessibility": ["large_text"]},
+        "recommendations": [],
+        "site": {"status": "building", "run_id": "run_b3x6t2m7q4ha", "attempt": 1, "builder": null, "commit_mode": null, "commit_sha": null, "commit_url": null, "html_sha256": null, "html": null, "spec": null, "updated_at": "2026-11-09T23:30:06Z"},
+        "progress": [
+          {"seq": 1, "step": "claim", "title": "Started building your site", "at": "2026-11-09T23:30:06Z"},
+          {"seq": 2, "step": "retrieve", "title": "Found six sessions that fit you", "at": "2026-11-09T23:30:07Z"},
+          {"seq": 3, "step": "plan", "title": "Chose a bold, schedule-first layout", "at": "2026-11-09T23:30:09Z"}
+        ]
+      },
+      "response_200_ready": {
+        "attendee_id": "att_k7m2qx4n3w5p",
+        "answers": {"role": "attendee", "interests": ["observability", "platform-engineering", "ai-agents"], "level": "practitioner", "vibe": "bold", "accessibility": ["large_text"]},
+        "recommendations": [],
+        "site": {
+          "status": "ready",
+          "run_id": "run_b3x6t2m7q4ha",
+          "attempt": 1,
+          "builder": "openai",
+          "commit_mode": "github",
+          "commit_sha": "3f2a9c1e5b7d4a6f8c0e1d2b3a4c5d6e7f809a1b",
+          "commit_url": "https://github.com/lukeeskinner/Backstage/commit/3f2a9c1e5b7d4a6f8c0e1d2b3a4c5d6e7f809a1b",
+          "html_sha256": "9b6f0c2d4e1a7f3b5c8d0e2f4a6b8c1d3e5f7a9b0c2d4e6f8a1b3c5d7e9f0a2b",
+          "html": "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Your KubeCon</title><style>body{margin:0;font:18px/1.5 system-ui;background:#0e1116;color:#f4f1ea}main{padding:24px}h1{font-size:2rem}article{border:1px solid #2a2f3a;border-radius:12px;padding:16px;margin:16px 0}button{font:inherit}@media (prefers-reduced-motion: reduce){*{animation:none;transition:none}}</style></head><body><main><h1>Your KubeCon, tuned for observability</h1><article data-session-id='sess-014'><h2>Alert Fatigue Is a Design Bug: Fewer Pages, Better Signals</h2><p>Room 255 BC, starts soon</p><button type='button' data-action='save'>Save</button> <button type='button' data-action='dismiss'>Not for me</button></article></main></body></html>",
+          "spec": {
+            "version": 1,
+            "headline": "Your KubeCon, tuned for observability",
+            "tone": "direct",
+            "theme": {"name": "bold-contrast", "background": "#0e1116", "text": "#f4f1ea", "accent": "#ff6a3d", "text_scale": 1.15, "motion": "full"},
+            "layout": "schedule-first",
+            "sections": ["hero", "next_up", "picks", "why"],
+            "featured": [{"session_id": "sess-014", "reason": "Starts soonest and matches two of your topics"}]
+          },
+          "updated_at": "2026-11-09T23:30:14Z"
+        },
+        "progress": [
+          {"seq": 1, "step": "claim", "title": "Started building your site", "at": "2026-11-09T23:30:06Z"},
+          {"seq": 2, "step": "retrieve", "title": "Found six sessions that fit you", "at": "2026-11-09T23:30:07Z"},
+          {"seq": 3, "step": "plan", "title": "Chose a bold, schedule-first layout", "at": "2026-11-09T23:30:09Z"},
+          {"seq": 4, "step": "write", "title": "Wrote your page", "at": "2026-11-09T23:30:12Z"},
+          {"seq": 5, "step": "validate", "title": "Checked the page is safe to show", "at": "2026-11-09T23:30:12Z"},
+          {"seq": 6, "step": "commit", "title": "Saved it as commit 3f2a9c1", "at": "2026-11-09T23:30:13Z"},
+          {"seq": 7, "step": "publish", "title": "Your site is ready", "at": "2026-11-09T23:30:14Z"}
+        ]
+      },
+      "response_404": {"error": {"code": "not_found", "message": "We could not find that site."}}
+    },
+    "POST /api/v1/attendee/{attendee_id}/interactions": {
+      "request": {"session_id": "sess-014", "action": "open", "position": 0},
+      "response_202": {"accepted": true}
+    },
+    "GET /api/v1/pivot/trends": {
+      "$comment": "Every series in a group shares the buckets array. counts[i] belongs to buckets[i].",
+      "query": {"window": "60m", "interval": "1m", "interest": null, "source": null},
+      "response_200": {
+        "window": "60m",
+        "interval": "1m",
+        "generated_at": "2026-11-09T23:45:00Z",
+        "filters": {"interest": null, "source": null},
+        "totals": {"surveys": 148, "simulated": 120, "sites_ready": 131, "sites_failed": 2, "interactions": 412, "open_rate": 0.61},
+        "interests_over_time": {
+          "buckets": ["2026-11-09T23:42:00Z", "2026-11-09T23:43:00Z", "2026-11-09T23:44:00Z"],
+          "series": [
+            {"key": "observability", "counts": [3, 5, 8]},
+            {"key": "ai-agents", "counts": [2, 4, 9]},
+            {"key": "security", "counts": [1, 1, 2]}
+          ]
+        },
+        "roles": [{"key": "attendee", "count": 120}, {"key": "speaker", "count": 12}, {"key": "staff", "count": 11}, {"key": "organizer", "count": 5}],
+        "levels": [{"key": "practitioner", "count": 81}, {"key": "new", "count": 39}, {"key": "expert", "count": 28}],
+        "vibes": [{"key": "bold", "count": 66}, {"key": "calm", "count": 49}, {"key": "playful", "count": 33}],
+        "sessions": [
+          {"session_id": "sess-014", "title": "Alert Fatigue Is a Design Bug: Fewer Pages, Better Signals", "recommended": 57, "opened": 31, "saved": 12, "dismissed": 4},
+          {"session_id": "sess-031", "title": "Golden Paths That People Actually Walk", "recommended": 44, "opened": 19, "saved": 6, "dismissed": 7}
+        ],
+        "agent": {
+          "builds_over_time": {
+            "buckets": ["2026-11-09T23:42:00Z", "2026-11-09T23:43:00Z", "2026-11-09T23:44:00Z"],
+            "series": [{"key": "ok", "counts": [4, 7, 11]}, {"key": "fallback", "counts": [0, 1, 0]}, {"key": "error", "counts": [0, 0, 1]}]
+          },
+          "latency_ms": {"p50": 4200, "p95": 9100},
+          "decisions": {
+            "theme": [{"key": "bold-contrast", "count": 61}, {"key": "calm-paper", "count": 44}, {"key": "playful-pop", "count": 22}, {"key": "high-contrast", "count": 4}],
+            "layout": [{"key": "schedule-first", "count": 77}, {"key": "topic-clusters", "count": 39}, {"key": "single-focus", "count": 15}],
+            "tone": [{"key": "direct", "count": 70}, {"key": "warm", "count": 41}, {"key": "energetic", "count": 20}]
+          },
+          "builders": [{"key": "template", "count": 108}, {"key": "openai", "count": 23}],
+          "commit_modes": [{"key": "dry-run", "count": 97}, {"key": "github", "count": 34}]
+        }
+      }
+    },
+    "GET /api/v1/pivot/trail/search": {
+      "$comment": "items[] is the ledger event shape with @timestamp renamed to at, plus highlight and trace_url. highlight fragments wrap matches in <em>; render them as text with emphasis, never as raw HTML.",
+      "query": {"q": "why schedule-first", "kind": "decision", "step": null, "attendee_id": null, "run_id": null, "from": null, "to": null, "limit": 20},
+      "response_200": {
+        "total": 37,
+        "limit": 20,
+        "items": [
+          {
+            "event_id": "run_b3x6t2m7q4ha:0003",
+            "run_id": "run_b3x6t2m7q4ha",
+            "attendee_id": "att_k7m2qx4n3w5p",
+            "seq": 3,
+            "at": "2026-11-09T23:30:09Z",
+            "kind": "decision",
+            "step": "plan",
+            "title": "Chose a bold, schedule-first layout",
+            "detail": "Three of the six picks start within the next two hours, so the schedule leads and topics follow.",
+            "highlight": {"detail": ["so the <em>schedule</em> leads and topics follow"]},
+            "decision": {"name": "layout", "value": "schedule-first", "alternatives": ["topic-clusters", "single-focus"], "rationale": "Three of the six picks start within the next two hours."},
+            "tool": "openai",
+            "model": "set-by-AGENT_OPENAI_MODEL",
+            "tokens": {"input": 1234, "output": 187},
+            "duration_ms": 1840,
+            "outcome": "ok",
+            "builder": "openai",
+            "source": "qr",
+            "commit": null,
+            "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+            "span_id": "00f067aa0ba902b7",
+            "trace_url": null
+          }
+        ],
+        "facets": {
+          "kind": [{"key": "decision", "count": 12}, {"key": "action", "count": 15}, {"key": "commit", "count": 5}, {"key": "log", "count": 4}, {"key": "error", "count": 1}],
+          "step": [{"key": "plan", "count": 12}, {"key": "write", "count": 6}, {"key": "commit", "count": 5}],
+          "tool": [{"key": "openai", "count": 14}, {"key": "elasticsearch", "count": 9}, {"key": "github", "count": 5}],
+          "outcome": [{"key": "ok", "count": 35}, {"key": "fallback", "count": 1}, {"key": "rejected", "count": 1}]
+        }
+      }
+    },
+    "GET /api/v1/pivot/trail/runs/{run_id}": {
+      "$comment": "events[] is every ledger event of the run ordered by seq, in the same item shape as trail search without highlight.",
+      "response_200": {
+        "run_id": "run_b3x6t2m7q4ha",
+        "attendee_id": "att_k7m2qx4n3w5p",
+        "survey": {"role": "attendee", "interests": ["observability", "platform-engineering", "ai-agents"], "level": "practitioner", "vibe": "bold", "accessibility": ["large_text"], "source": "qr", "created_at": "2026-11-09T23:30:04Z"},
+        "site": {"status": "ready", "builder": "openai", "commit_mode": "github", "commit_sha": "3f2a9c1e5b7d4a6f8c0e1d2b3a4c5d6e7f809a1b", "commit_url": "https://github.com/lukeeskinner/Backstage/commit/3f2a9c1e5b7d4a6f8c0e1d2b3a4c5d6e7f809a1b", "html_sha256": "9b6f0c2d4e1a7f3b5c8d0e2f4a6b8c1d3e5f7a9b0c2d4e6f8a1b3c5d7e9f0a2b"},
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "trace_url": null,
+        "events": []
+      }
+    }
+  },
+  "documents": {
+    "session": {
+      "session_id": "sess-014",
+      "title": "Alert Fatigue Is a Design Bug: Fewer Pages, Better Signals",
+      "abstract": "How one platform team cut paging volume by rewriting alerts around user-facing objectives instead of machine symptoms.",
+      "track": "observability",
+      "tags": ["observability", "alerting", "slo"],
+      "level": "practitioner",
+      "format": "talk",
+      "room": "Room 255 BC",
+      "starts_at": "2026-11-10T00:00:00Z",
+      "ends_at": "2026-11-10T00:35:00Z",
+      "synthetic": true
+    },
+    "survey": {
+      "$comment": "Stored at _id = attendee_id. goal and traceparent never leave the API through a public route. site.html is stored and not indexed.",
+      "attendee_id": "att_k7m2qx4n3w5p",
+      "created_at": "2026-11-09T23:30:04Z",
+      "source": "qr",
+      "answers": {
+        "role": "attendee",
+        "interests": ["observability", "platform-engineering", "ai-agents"],
+        "level": "practitioner",
+        "goal": "Find talks on cutting alert noise",
+        "vibe": "bold",
+        "accessibility": ["large_text"]
+      },
+      "profile_text": "observability platform-engineering ai-agents practitioner find talks on cutting alert noise",
+      "recommendations": [
+        {"session_id": "sess-014", "score": 12.4, "reasons": ["interest", "goal", "level"]},
+        {"session_id": "sess-031", "score": 9.8, "reasons": ["interest", "trending"]}
+      ],
+      "site": {"status": "queued", "run_id": null, "attempt": 0, "builder": null, "commit_mode": null, "commit_sha": null, "commit_url": null, "html_sha256": null, "html": null, "spec": null, "updated_at": "2026-11-09T23:30:04Z"},
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+    },
+    "ledger_events": [
+      {
+        "event_id": "run_b3x6t2m7q4ha:0001", "run_id": "run_b3x6t2m7q4ha", "attendee_id": "att_k7m2qx4n3w5p", "seq": 1,
+        "@timestamp": "2026-11-09T23:30:06Z", "kind": "action", "step": "claim",
+        "title": "Started building your site", "detail": "Claimed the queued survey with its sequence number and primary term. Attempt 1.",
+        "tool": "elasticsearch", "duration_ms": 41, "outcome": "ok", "builder": "openai", "source": "qr",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "span_id": "1a2b3c4d5e6f7081", "service": "agent-workers", "service_version": "set-by-CODE_SHA"
+      },
+      {
+        "event_id": "run_b3x6t2m7q4ha:0002", "run_id": "run_b3x6t2m7q4ha", "attendee_id": "att_k7m2qx4n3w5p", "seq": 2,
+        "@timestamp": "2026-11-09T23:30:07Z", "kind": "action", "step": "retrieve",
+        "title": "Found six sessions that fit you", "detail": "Read six recommended sessions: sess-014, sess-031, sess-007, sess-022, sess-019, sess-003.",
+        "tool": "elasticsearch", "duration_ms": 63, "outcome": "ok", "builder": "openai", "source": "qr",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "span_id": "2b3c4d5e6f708192", "service": "agent-workers", "service_version": "set-by-CODE_SHA"
+      },
+      {
+        "event_id": "run_b3x6t2m7q4ha:0003", "run_id": "run_b3x6t2m7q4ha", "attendee_id": "att_k7m2qx4n3w5p", "seq": 3,
+        "@timestamp": "2026-11-09T23:30:09Z", "kind": "decision", "step": "plan",
+        "title": "Chose a bold, schedule-first layout", "detail": "Three of the six picks start within the next two hours, so the schedule leads and topics follow.",
+        "decision": {"name": "layout", "value": "schedule-first", "alternatives": ["topic-clusters", "single-focus"], "rationale": "Three of the six picks start within the next two hours."},
+        "tool": "openai", "model": "set-by-AGENT_OPENAI_MODEL", "tokens": {"input": 1234, "output": 187}, "duration_ms": 1840, "outcome": "ok", "builder": "openai", "source": "qr",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "span_id": "00f067aa0ba902b7", "service": "agent-workers", "service_version": "set-by-CODE_SHA"
+      },
+      {
+        "event_id": "run_b3x6t2m7q4ha:0005", "run_id": "run_b3x6t2m7q4ha", "attendee_id": "att_k7m2qx4n3w5p", "seq": 5,
+        "@timestamp": "2026-11-09T23:30:12Z", "kind": "action", "step": "validate",
+        "title": "Checked the page is safe to show", "detail": "One complete document, 4.1 KB, no scripts, handlers or external URLs, six session cards.",
+        "tool": "validator", "duration_ms": 3, "outcome": "ok", "builder": "openai", "source": "qr",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "span_id": "3c4d5e6f708192a3", "service": "agent-workers", "service_version": "set-by-CODE_SHA"
+      },
+      {
+        "event_id": "run_b3x6t2m7q4ha:0006", "run_id": "run_b3x6t2m7q4ha", "attendee_id": "att_k7m2qx4n3w5p", "seq": 6,
+        "@timestamp": "2026-11-09T23:30:13Z", "kind": "commit", "step": "commit",
+        "title": "Saved it as commit 3f2a9c1", "detail": "Committed generated/sites/att_k7m2qx4n3w5p/index.html to agent/sites.",
+        "commit": {
+          "mode": "github",
+          "sha": "3f2a9c1e5b7d4a6f8c0e1d2b3a4c5d6e7f809a1b",
+          "url": "https://github.com/lukeeskinner/Backstage/commit/3f2a9c1e5b7d4a6f8c0e1d2b3a4c5d6e7f809a1b",
+          "branch": "agent/sites",
+          "path": "generated/sites/att_k7m2qx4n3w5p/index.html",
+          "message": "site(att_k7m2qx4n): bold schedule-first build for observability",
+          "additions": 143
+        },
+        "tool": "github", "duration_ms": 612, "outcome": "ok", "builder": "openai", "source": "qr",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "span_id": "4d5e6f708192a3b4", "service": "agent-workers", "service_version": "set-by-CODE_SHA"
+      },
+      {
+        "event_id": "run_b3x6t2m7q4ha:0007", "run_id": "run_b3x6t2m7q4ha", "attendee_id": "att_k7m2qx4n3w5p", "seq": 7,
+        "@timestamp": "2026-11-09T23:30:14Z", "kind": "log", "step": "publish",
+        "title": "Your site is ready", "detail": "Published the page and its hash to the survey document.",
+        "tool": "elasticsearch", "duration_ms": 38, "run_duration_ms": 8120, "outcome": "ok", "builder": "openai", "source": "qr",
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736", "span_id": "5e6f708192a3b4c5", "service": "agent-workers", "service_version": "set-by-CODE_SHA"
+      }
+    ],
+    "interaction": {
+      "$comment": "role, interests, level and source are copied from the survey so trends can slice without joins.",
+      "attendee_id": "att_k7m2qx4n3w5p",
+      "session_id": "sess-014",
+      "action": "open",
+      "position": 0,
+      "run_id": "run_b3x6t2m7q4ha",
+      "@timestamp": "2026-11-09T23:31:02Z",
+      "role": "attendee",
+      "interests": ["observability", "platform-engineering", "ai-agents"],
+      "level": "practitioner",
+      "source": "qr"
+    }
+  }
+}
