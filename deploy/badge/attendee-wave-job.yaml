@@ -38,7 +38,7 @@ spec:
             - name: CODE_REPO
               value: lukeeskinner/Backstage
             - name: CODE_SHA
-              value: PIN_AFTER_PUSH
+              value: e69cc65a70466585d6258e5190faff01afcb2853
             - name: API_BASE_URL
               value: http://incident-api:8000/api/v1
             - name: ATTENDEE_COUNT

@@ -105,3 +105,24 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Verified** · Badge tests passed (35), including new overlay and job checks. `make check` passed. Cluster evidence is from Radar `wait_for` and `get_workload_logs` on the Jobs and Deployments named above.
 - **Open** · In-cluster diagnosis is `mock` until Radar issues a service token. The badge queue is in memory, so restarting badge-control drops queued jobs. The `dash0-credentials` Secret and the web/dash0 overlay entries are Kunj's dependencies. The browser HTTPS path for the stage mic is still open.
 - **Reviewed** · main at ab2798a: Luke's Elastic and Radar Secret entry, Kunj's web, observability and codex handoffs (`docs/demo/handoff-log.md`, `dependencies.md`, `codex-handoff.md`), and `docs/handoffs/ali-connect-cluster.md`.
+
+## 2026-11-09 — Pivot: headroom, attendee simulator and agent manifest (Ahmed lane)
+
+- **Branch or PR** · `ali/pivot-runtime`, cut from main at bbfc6a8 (the pivot kickoff, PR #31). Lane guide: [contracts/pivot/lanes/ahmed.md](../../contracts/pivot/lanes/ahmed.md).
+- **1 · Headroom and secrets (Luke)** · Headroom is fine. Pod CPU limits in `team-backstage` total about 3.9 of 10 cores: web 1.5, incident-api 1.0, collector 0.25, badge-control 0.25, stations 0.2 and 0.2, starter `app` 0.5. That leaves about 6 cores free, so the badge stations stay up. `incident-secrets`, `web-openai` and `dash0-credentials` exist; I checked key names only. **`agent-github` does not exist yet.** Luke enters it in Radar's Secret editor.
+- **2 · Attendee simulator (Anurup, Kunj)** ·
+  - Command: `python -m badge_sim.attendees --base-url <api>/api/v1 --count 150 --rate 0.5 --seed 7`, run from `services/badge-simulator`. Add `--dry-run` to print surveys without sending.
+  - Five personas with different topic weights. `ai-agents` and `security` grow over the run. Enums come from `examples.v1.json`, with `source: simulator`. No names or ids. `goal` is empty, or one of 5 fixed phrases 35% of the time.
+  - Zero to three taps per attendee. Stops after 3 consecutive 429s.
+  - In-cluster Job: `deploy/badge/attendee-wave-job.yaml`, pinned to e69cc65, not in the kustomization. It's non-root with a read-only root filesystem and 100m CPU. It defaults to 150 attendees at 0.5/s against `http://incident-api:8000/api/v1`.
+  - **Not run yet:** the live API has no attendee routes until Anurup's skeleton SHA is rolled.
+- **3b · Agent manifest (Luke)** · `deploy/platform/agent-workers.yaml` plus `agent-bootstrap.py`, added to the overlay:
+  - The bootstrap extracts only `services/agent-workers/` and `contracts/pivot/` and installs `services/agent-workers/requirements.txt`. The container runs `python -m agent_workers`.
+  - One replica, `Recreate`, no service-account token, non-root, read-only root filesystem.
+  - Limits are 250m and 256Mi for the agent and 500m for init.
+  - Explicit `secretKeyRef` only: the three `ELASTICSEARCH_*` keys, `OPENAI_API_KEY`, and `GITHUB_TOKEN`, marked optional so the agent can start in dry-run before the secret exists. No `envFrom`.
+  - OTLP to `http://otel-collector:4318` as `agent-workers`. `AGENT_BUILDER=template`, `AGENT_COMMIT_MODE=dry-run`.
+  - **Pinned to placeholder `LUKE_AGENT_SHA`.** The bootstrap rejects it, so nothing deploys until Luke's SHA arrives. `kubectl kustomize deploy/platform` renders 11 objects.
+- **Verified** · Badge tests pass (46): simulator against a stub that serves the contract's example bodies, enum parity with `examples.v1.json`, no identity fields, growing topics, 429 stop, and agent manifest guardrails including the bootstrap path filter. `make check` passes. Nothing in this entry was applied to the cluster.
+- **Waiting on** · Anurup's skeleton API SHA (step 3a); Luke's agent SHA, settings list and `agent-github` Secret (3b); Anurup's final and Kunj's web SHAs (4).
+- **Reviewed** · main at bbfc6a8: the pivot kickoff and all four lane guides, `examples.v1.json`, Kunj's hosted web and vision commits through 1ed1e66 (web now released from `deploy/web/cluster`), and `deploy/incident/incident-api.yaml` (pin f536b75).
