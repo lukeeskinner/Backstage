@@ -50,13 +50,3 @@ export function ProjectorSites({ api, loadCommit }: ProjectorSitesProps) {
     </dl>
   );
 }
-
-/** Holds #/trail until the TrailConsole component lands in src/diagnostics/. */
-export function TrailPending() {
-  return (
-    <section className="trail-pending" aria-labelledby="trail-title">
-      <h1 id="trail-title">Developer trail</h1>
-      <p>Search over everything the agent read, decided and did. This screen mounts here once the trail console is merged.</p>
-    </section>
-  );
-}

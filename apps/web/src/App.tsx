@@ -24,7 +24,9 @@ import type { Identity } from "./ui/types";
 import { AppShell, BoardView, DevPanel, StatusView } from "./ui";
 import { createPivotApi, recallAttendeeId, type PivotApi } from "./pivot/client";
 import { createPivotMockTransport, MOCK_COMMIT_SUBJECT, PivotMock } from "./pivot/mock";
-import { fetchLatestSiteCommit, ProjectorSites, TrailPending } from "./pivot/ProjectorSites";
+import { fetchLatestSiteCommit, ProjectorSites } from "./pivot/ProjectorSites";
+import { createPivotClient } from "./api/pivot";
+import { TrailConsole } from "./diagnostics/TrailConsole";
 import { SitePage } from "./pivot/SitePage";
 import { SurveyPage } from "./pivot/SurveyPage";
 import { TrendsPage } from "./pivot/TrendsPage";
@@ -123,6 +125,14 @@ export default function App() {
       }),
     [pivotMock, token],
   );
+  const trailClient = useMemo(
+    () =>
+      createPivotClient({
+        transport: pivotMock ? createPivotMockTransport(pivotMock, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
+        getToken: () => token,
+      }),
+    [pivotMock, token],
+  );
   const siteId = useSiteId();
 
   const registerProbe = useCallback((next: (() => void) | null) => {
@@ -177,7 +187,7 @@ export default function App() {
       ) : route === "trends" ? (
         <TrendsPage key={`trends-${identityId}-${credentialGeneration}`} api={pivot} />
       ) : route === "trail" ? (
-        <TrailPending />
+        <TrailConsole key={`trail-${identityId}-${credentialGeneration}`} pivot={trailClient} mockMode={MOCK_MODE} />
       ) : route === "history" ? (
         <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={MOCK_MODE} />
       ) : route === "me" && identity && identity.tier > 0 ? (

@@ -111,9 +111,6 @@
 .builds__numbers dt { color: var(--muted); font-size: 0.8125rem; }
 .builds__numbers dd { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.trail-pending { display: grid; gap: 8px; padding: 24px 0; max-width: 40rem; }
-.trail-pending p { color: var(--muted); }
-
 .projector-sites { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 32px; align-items: baseline; padding: 20px 24px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--panel); }
 .projector-sites dt { color: var(--muted); font-size: 1rem; }
 .projector-sites dd { font-family: var(--font-display); font-size: 1.75rem; font-weight: 600; overflow-wrap: anywhere; }
