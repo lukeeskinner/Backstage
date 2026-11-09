@@ -281,3 +281,11 @@
 - **Branch/PR** · kunj/video-incident-rehearsal, PR30.
 - **Finding/fix** · Gitar identified that Vite changeOrigin rewrites Host while the browser retains Origin, making valid local rehearsal POSTs fail403. Preserve the original Host for /demo-api. The hosted nginx path already preserves Host and is unaffected; runtime staysf05eb2d.
 - **Verified** · A real Vite server proxying the actual Node routes accepts same-origin POST202 and rejects foreign Origin403. Production Docker build and nginx -t pass. Shared Pod web-6b7fc4cdf6-5kcnw now has both init containers Completed and all3runtime containers Ready; HTTPS controls started runf159236d-10c6-4e84-b8ac-7357df8a719f, actual YOLO9people/277ms, producer sample receipts committed. Lifecycle follow-up pending real30s/60s windows. No simulated success.
+
+
+## 2026-11-09 — First complete video incident proof and trace continuity
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Hosted proof** · Runf159236d-10c6-4e84-b8ac-7357df8a719f raised inc-overflow-2572a6a8ca394003add41b223b3e180b at23:06:03UTC. Organizer keyboard approval23:06:13, venue-staff-01 inbox Needs you then keyboard acceptance23:06:29, verify23:06:32. Board remained pending at52.228s, then resolved/version8 after63.925s of low-count evidence. Diagnostics: Elasticsearch durable, projection current, checkpoint/search revision60/1. Projector showed Recovering during the wait. Dash0 SQL read real trace dfb691d4741a5b0d8229699c756d4011 with7transition spans before closure. No auto human actions or shortened timer.
+- **Final improvements** · Keep valid browser traceparent on scheduled signal ingress so the new producer preserves browser-to-API correlation; malformed/zero contexts dropped. Strict Bearer syntax. Move the two-column breakpoint to48rem so video and incident are simultaneously visible in the actual959px demo pane; phones still stack.
+- **Verified** ·149 frontend +37 Node tests, TypeScript/build and diff check pass; actual Vite proxy regression remains covered. The first runtime wasf05eb2d; second rehearsal follows the trace/layout rollout. Latest main213495b unchanged; Gitar/CI passed prior f0a372e.

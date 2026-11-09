@@ -9,6 +9,7 @@ async function fixture(t) {
   let fail = false;
   const signals = [];
   const paths = [];
+  const signalContexts = [];
   const incident = () => ({ id: "incident-rehearsal", room_id: "room-b", type: "overflow", state });
   const server = createDemoServer({ rehearsal: {
     env: { DEMO_OPERATOR_TOKEN: "organizer-private", DEMO_SIGNAL_TOKEN: "producer-private" }, now: () => clock,
@@ -21,6 +22,7 @@ async function fixture(t) {
         assert.equal(options.headers.Authorization, "Bearer producer-private");
         if (fail) return { ok: false, status: 503 };
         signals.push(JSON.parse(options.body));
+        signalContexts.push(options.headers.traceparent);
         const raised = clock >= Date.parse("2026-11-09T20:00:30Z");
         return { ok: true, json: async () => ({ incident_id: raised ? "incident-rehearsal" : null }) };
       }
@@ -31,11 +33,11 @@ async function fixture(t) {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   t.after(() => new Promise((resolve) => { server.close(resolve); server.closeAllConnections(); }));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const request = async (path = "run", { token = "organizer-private", method = "POST", key = "rehearsal-intent-1", origin } = {}) => {
-    const response = await fetch(`${base}/demo-api/${path}`, { method, headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": key, ...(origin ? { Origin: origin } : {}) } });
+  const request = async (path = "run", { token = "organizer-private", method = "POST", key = "rehearsal-intent-1", origin, traceparent } = {}) => {
+    const response = await fetch(`${base}/demo-api/${path}`, { method, headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": key, ...(origin ? { Origin: origin } : {}), ...(traceparent ? { traceparent } : {}) } });
     return { status: response.status, body: await response.json() };
   };
-  return { request, signals, paths, fail: () => { fail = true; }, state: (value) => { state = value; }, advance: async (seconds = 5) => { clock += seconds * 1000; const fn = next; next = null; await fn?.(); } };
+  return { request, signals, paths, signalContexts, fail: () => { fail = true; }, state: (value) => { state = value; }, advance: async (seconds = 5) => { clock += seconds * 1000; const fn = next; next = null; await fn?.(); } };
 }
 
 test("rehearsal rejects other identities and cross-origin writes before calling the API", async (t) => {
@@ -92,4 +94,17 @@ test("the bounded run stops when eight minutes elapse instead of injecting indef
   assert.equal(run.phase, "paused");
   assert.match(run.error, /Eight-minute/);
   assert.equal(f.signals.length, 2);
+});
+test("signal ingress retains the browser trace context across scheduled samples", async (t) => {
+  const f = await fixture(t);
+  const parent = "00-19d1c7278bdf4d37b9b5d32f308dcd1a-1234567890abcdef-01";
+  await f.request("run", { traceparent: parent });
+  await f.advance();
+  assert.deepEqual(f.signalContexts, [parent, parent, parent, parent]);
+  assert.equal((await f.request("run", { method: "GET" })).body.run.traceparent, undefined);
+});
+test("malformed or zero trace contexts are not propagated", async (t) => {
+  const f = await fixture(t);
+  await f.request("run", { traceparent: "00-00000000000000000000000000000000-1234567890abcdef-01" });
+  assert.deepEqual(f.signalContexts, [undefined, undefined]);
 });

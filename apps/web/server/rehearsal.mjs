@@ -16,7 +16,8 @@ export function createRehearsalRoutes({ env = process.env, fetchImpl = fetch, no
     error: run.error, signal_prefix: `demo-video-${run.id}`, label: "Injected rehearsal counts; video detections are separate" };
   const call = async (path, token, body) => {
     const response = await fetchImpl(`${base}${path}`, { method: body ? "POST" : "GET",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json",
+        ...(body && run?.traceparent ? { traceparent: run.traceparent } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw Error(`Incident API returned ${response.status}. Rehearsal paused; existing evidence is preserved.`);
     return response.json();
@@ -60,7 +61,7 @@ export function createRehearsalRoutes({ env = process.env, fetchImpl = fetch, no
       const send = (status, body) => { response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); response.end(JSON.stringify(body)); return true; };
       const fail = (status, message) => send(status, { error: { message } });
       if (!operator() || !producer()) return fail(503, "The rehearsal producer is not configured on this server.");
-      const bearer = request.headers.authorization?.replace(/^Bearer /, "") || "";
+      const bearer = /^Bearer ([^\s]{1,4096})$/.exec(request.headers.authorization || "")?.[1] || "";
       if (!bearer || !timingSafeEqual(digest(bearer), digest(operator()))) return fail(403, "Only the configured rehearsal organizer can inject signals.");
       if (request.headers.origin && request.headers.origin !== `https://${request.headers.host}` && request.headers.origin !== `http://${request.headers.host}`) return fail(403, "Use the same-origin rehearsal page.");
       try {
@@ -74,7 +75,9 @@ export function createRehearsalRoutes({ env = process.env, fetchImpl = fetch, no
           if (run?.key === key) return send(200, { run: snapshot() });
           if (busy || (run && run.phase !== "completed")) return fail(409, "A rehearsal already exists. Finish its incident before starting another.");
           if (incidents.items.some((incident) => incident.room_id === "room-b" && incident.type === "overflow" && incident.state !== "resolved")) return fail(409, "Room B already has an unresolved overflow. Finish it on the board first.");
-          run = { id: randomUUID(), key, phase: "injecting", started_at: new Date(now()).toISOString(), recovery_started_at: null, incident_id: null, samples: 0, error: null };
+          const parent = request.headers.traceparent;
+          const validParent = typeof parent === "string" && /^00-(?!0{32}-)[0-9a-f]{32}-(?!0{16}-)[0-9a-f]{16}-0[01]$/.test(parent);
+          run = { id: randomUUID(), key, phase: "injecting", started_at: new Date(now()).toISOString(), recovery_started_at: null, incident_id: null, samples: 0, error: null, traceparent: validParent ? parent : null };
           await tick();
           return send(202, { run: snapshot() });
         }
