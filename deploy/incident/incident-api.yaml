@@ -67,6 +67,10 @@ spec:
             - {name: CODE_SHA, value: f536b757fe510b3af8a4db76a09fd88d81ae6213}
             # Bootstrap the isolated evidence alias/mapping before changing to true.
             - {name: EVIDENCE_PROJECTION_ENABLED, value: "false"}
+            # Attendee-site pivot. Needs a CODE_SHA that contains backstage_api/pivot.py; a failure never stops startup.
+            # Auto bootstrap creates only missing <prefix>-sessions/surveys/agent-ledger/interactions and seeds sessions.
+            - {name: PIVOT_ENABLED, value: "false"}
+            - {name: PIVOT_AUTO_BOOTSTRAP, value: "false"}
             - {name: OTEL_ENABLED, value: "true"}
             - {name: OTEL_SERVICE_NAME, value: incident-api}
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: 'http://otel-collector:4318'}

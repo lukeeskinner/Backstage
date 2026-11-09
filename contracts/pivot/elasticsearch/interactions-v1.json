@@ -1,0 +1,40 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "_meta": {
+      "purpose": "One document per tap on a recommendation. role, interests, level and source are copied from the survey so trends can slice without joins."
+    },
+    "properties": {
+      "attendee_id": {
+        "type": "keyword"
+      },
+      "session_id": {
+        "type": "keyword"
+      },
+      "action": {
+        "type": "keyword"
+      },
+      "position": {
+        "type": "integer"
+      },
+      "run_id": {
+        "type": "keyword"
+      },
+      "@timestamp": {
+        "type": "date"
+      },
+      "role": {
+        "type": "keyword"
+      },
+      "interests": {
+        "type": "keyword"
+      },
+      "level": {
+        "type": "keyword"
+      },
+      "source": {
+        "type": "keyword"
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "_meta": {
+      "purpose": "One document per attendee, _id = attendee_id. It is also the build queue: the agent claims site.status=queued with if_seq_no and if_primary_term. site.html and site.spec are kept in _source and deliberately not mapped."
+    },
+    "properties": {
+      "attendee_id": {
+        "type": "keyword"
+      },
+      "created_at": {
+        "type": "date"
+      },
+      "ingested_at": {
+        "type": "date"
+      },
+      "source": {
+        "type": "keyword"
+      },
+      "answers": {
+        "properties": {
+          "role": {
+            "type": "keyword"
+          },
+          "interests": {
+            "type": "keyword"
+          },
+          "level": {
+            "type": "keyword"
+          },
+          "goal": {
+            "type": "text"
+          },
+          "vibe": {
+            "type": "keyword"
+          },
+          "accessibility": {
+            "type": "keyword"
+          }
+        }
+      },
+      "profile_text": {
+        "type": "text"
+      },
+      "recommendations": {
+        "properties": {
+          "session_id": {
+            "type": "keyword"
+          },
+          "score": {
+            "type": "float"
+          },
+          "reasons": {
+            "type": "keyword"
+          }
+        }
+      },
+      "site": {
+        "properties": {
+          "status": {
+            "type": "keyword"
+          },
+          "run_id": {
+            "type": "keyword"
+          },
+          "attempt": {
+            "type": "integer"
+          },
+          "builder": {
+            "type": "keyword"
+          },
+          "commit_mode": {
+            "type": "keyword"
+          },
+          "commit_sha": {
+            "type": "keyword"
+          },
+          "html_sha256": {
+            "type": "keyword"
+          },
+          "updated_at": {
+            "type": "date"
+          }
+        }
+      },
+      "trace_id": {
+        "type": "keyword"
+      }
+    }
+  }
+}

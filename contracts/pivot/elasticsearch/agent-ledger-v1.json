@@ -1,0 +1,121 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "_meta": {
+      "purpose": "Append-only record of what the site-builder agent read, decided and did. _id = {run_id}:{seq:04d}, written with op_type=create and never updated."
+    },
+    "properties": {
+      "event_id": {
+        "type": "keyword"
+      },
+      "run_id": {
+        "type": "keyword"
+      },
+      "attendee_id": {
+        "type": "keyword"
+      },
+      "seq": {
+        "type": "integer"
+      },
+      "@timestamp": {
+        "type": "date"
+      },
+      "ingested_at": {
+        "type": "date"
+      },
+      "kind": {
+        "type": "keyword"
+      },
+      "step": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text"
+      },
+      "detail": {
+        "type": "text"
+      },
+      "decision": {
+        "properties": {
+          "name": {
+            "type": "keyword"
+          },
+          "value": {
+            "type": "keyword"
+          },
+          "alternatives": {
+            "type": "keyword"
+          },
+          "rationale": {
+            "type": "text"
+          }
+        }
+      },
+      "tool": {
+        "type": "keyword"
+      },
+      "model": {
+        "type": "keyword"
+      },
+      "tokens": {
+        "properties": {
+          "input": {
+            "type": "long"
+          },
+          "output": {
+            "type": "long"
+          }
+        }
+      },
+      "duration_ms": {
+        "type": "long"
+      },
+      "run_duration_ms": {
+        "type": "long"
+      },
+      "outcome": {
+        "type": "keyword"
+      },
+      "builder": {
+        "type": "keyword"
+      },
+      "source": {
+        "type": "keyword"
+      },
+      "commit": {
+        "properties": {
+          "mode": {
+            "type": "keyword"
+          },
+          "sha": {
+            "type": "keyword"
+          },
+          "branch": {
+            "type": "keyword"
+          },
+          "path": {
+            "type": "keyword"
+          },
+          "message": {
+            "type": "text"
+          },
+          "additions": {
+            "type": "integer"
+          }
+        }
+      },
+      "trace_id": {
+        "type": "keyword"
+      },
+      "span_id": {
+        "type": "keyword"
+      },
+      "service": {
+        "type": "keyword"
+      },
+      "service_version": {
+        "type": "keyword"
+      }
+    }
+  }
+}

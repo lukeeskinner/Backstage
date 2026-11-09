@@ -25,3 +25,14 @@ The command creates `backstage-qa-example-incident-evidence-v1` and write alias 
 The provisioning principal needs index/alias creation rights. Runtime access needs checkpoint read/index privileges as before, plus evidence read, create-only writes and refresh rights (`read`, `create_doc`, `maintenance` and alias visibility as required by your Elasticsearch deployment). Runtime writes require the evidence alias and never auto-create a missing index. Search or projection failure does not roll back an acknowledged incident transition. The checkpoint timeline stays readable while evidence is pending or degraded.
 
 Every projection chunk checks individual bulk item results. A 409 succeeds only if the existing stored hash and a recomputed hash of its content match the immutable expected document. The watermark advances only after all documents pass and Elasticsearch refresh acknowledges zero failed shards. Repeated projection/restart uses deterministic event IDs. Text search is lexical, scoped and bounded; semantic search is outside this slice.
+
+## Attendee-site pivot indices
+
+The pivot's four index definitions, two optional ingest pipelines and the synthetic session catalog live in [contracts/pivot/elasticsearch](../../contracts/pivot/elasticsearch), because that directory ships in the API runtime. See the [pivot kickoff](../../contracts/pivot/README.md) for what each index holds.
+
+```sh
+python3 data/elasticsearch/bootstrap-pivot.py --prefix backstage-qa-pivot --probe
+python3 data/elasticsearch/bootstrap-pivot.py --prefix backstage-qa-pivot --seed --pipelines
+```
+
+The command needs `ELASTICSEARCH_URL` and `ELASTICSEARCH_API_KEY` in the environment and the incident API's Python dependencies. It creates only missing `<prefix>-sessions`, `-surveys`, `-agent-ledger` and `-interactions` aliases with `-v1` write indices, leaves existing ones alone, and prints what it did. `--seed` indexes 40 synthetic sessions with start times counted from now; run it again to refresh the times. The API does the same work at startup when `PIVOT_AUTO_BOOTSTRAP=true`. Pipelines need a cluster privilege the runtime key may not have; a denial is reported and nothing depends on them. None of this has been run against a real cluster yet.
