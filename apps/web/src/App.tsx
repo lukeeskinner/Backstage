@@ -3,7 +3,7 @@ import { IncidentEvidence } from "./diagnostics/IncidentEvidence";
 import { createClient, type ApiClient } from "./api/client";
 import { fetchTransport } from "./api/transport";
 import { useBoard } from "./hooks/useBoard";
-import { useHashRoute } from "./hooks/useHashRoute";
+import { useHashRoute, useSiteId } from "./hooks/useHashRoute";
 import { useIncidentActions } from "./hooks/useIncidentActions";
 import { useSessionTokens } from "./hooks/useSessionTokens";
 import { createHttpPresenceApi } from "./api/presence";
@@ -17,16 +17,24 @@ import { createMockTransport, DEMO_IDENTITIES, MOCK_PRINCIPALS } from "./mock/tr
 import { VoiceBriefingControl } from "./ui/VoiceBriefingControl";
 import { useInbox } from "./hooks/useInbox";
 import { VideoDemo } from "./demo/VideoDemo";
+import { IncidentRehearsal } from "./demo/IncidentRehearsal";
 import { HistoryView } from "./ui/HistoryView";
 import { InboxView } from "./ui/InboxView";
 import type { Identity } from "./ui/types";
-import { AppShell, BoardView, DevPanel, JoinPage, StatusView } from "./ui";
+import { AppShell, BoardView, DevPanel, StatusView } from "./ui";
+import { createPivotApi, recallAttendeeId, type PivotApi } from "./pivot/client";
+import { createPivotMockTransport, MOCK_COMMIT_SUBJECT, PivotMock } from "./pivot/mock";
+import { fetchLatestSiteCommit, ProjectorSites, TrailPending } from "./pivot/ProjectorSites";
+import { SitePage } from "./pivot/SitePage";
+import { SurveyPage } from "./pivot/SurveyPage";
+import { TrendsPage } from "./pivot/TrendsPage";
 
 const MOCK_MODE = import.meta.env.VITE_MOCK_API !== "false";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 const BOARD_POLL_MS = 2000;
 const STATUS_POLL_MS = 3000;
 const MOCK_LATENCY_MS = 120;
+const loadSiteCommit = MOCK_MODE ? async () => MOCK_COMMIT_SUBJECT : fetchLatestSiteCommit;
 
 interface BoardRouteProps {
   client: ApiClient;
@@ -66,9 +74,10 @@ function BoardRoute({ client, announce, registerProbe, presence }: BoardRoutePro
   );
 }
 
-function StatusRoute({ client, variant, presence, joinUrl }: { client: ApiClient; variant: "attendee" | "projector"; presence: PresenceCounts | null; joinUrl: string }) {
+function StatusRoute({ client, pivot, variant, presence, joinUrl }: { client: ApiClient; pivot: PivotApi; variant: "attendee" | "projector"; presence: PresenceCounts | null; joinUrl: string }) {
   const { status, error } = useStatus(client, STATUS_POLL_MS);
-  return <StatusView status={status} error={error} variant={variant} presence={presence} joinUrl={variant === "projector" ? joinUrl : undefined} />;
+  return <StatusView status={status} error={error} variant={variant} presence={presence} joinUrl={variant === "projector" ? joinUrl : undefined}
+    extra={variant === "projector" ? <ProjectorSites api={pivot} loadCommit={loadSiteCommit} /> : undefined} />;
 }
 
 function InboxRoute({ client, identity, token, announce }: { token: string; client: ApiClient; identity: Identity; announce: (message: string) => void }) {
@@ -105,6 +114,16 @@ export default function App() {
   );
   // Opaque generation resets scoped caches, actions and inspector state even for the same role.
   const credentialGeneration = useMemo(() => crypto.randomUUID(), [client]);
+  const [pivotMock] = useState(() => (MOCK_MODE ? new PivotMock() : null));
+  const pivot = useMemo(
+    () =>
+      createPivotApi({
+        transport: pivotMock ? createPivotMockTransport(pivotMock, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
+        getToken: () => token,
+      }),
+    [pivotMock, token],
+  );
+  const siteId = useSiteId();
 
   const registerProbe = useCallback((next: (() => void) | null) => {
     probe.current = next;
@@ -126,11 +145,16 @@ export default function App() {
   ) : undefined;
 
   if (route === "join") {
-    return <main><JoinPage joinedTier={joinedTier} onJoin={async (tier) => {
+    return <main><SurveyPage api={pivot} existingId={recallAttendeeId()} onBuilt={(attendeeId) => { window.location.hash = `#/site/${attendeeId}`; }} onJoin={async (tier) => {
       const result = await presenceApi.join(tier);
       if (result.ok) setJoinedTier(tier);
       return result;
     }} /></main>;
+  }
+
+  if (route === "site") {
+    const attendeeId = siteId ?? recallAttendeeId();
+    return <main><SitePage key={attendeeId ?? "none"} api={pivot} attendeeId={attendeeId} /></main>;
   }
 
   return (
@@ -147,7 +171,13 @@ export default function App() {
       devPanel={devPanel}
     >
       {route === "demo" ? (
-        <VideoDemo key={`video-${credentialGeneration}`} token={MOCK_MODE ? "" : token} />
+        <VideoDemo key={`video-${credentialGeneration}`} token={MOCK_MODE ? "" : token}>
+          {!MOCK_MODE && identity && identity.tier > 0 ? <IncidentRehearsal client={client} token={token} organizer={identity.tier === 3} announce={setAnnouncement} /> : <p>Use an authorized live role to follow the incident rehearsal. Attendees can watch the sanitized status view.</p>}
+        </VideoDemo>
+      ) : route === "trends" ? (
+        <TrendsPage key={`trends-${identityId}-${credentialGeneration}`} api={pivot} />
+      ) : route === "trail" ? (
+        <TrailPending />
       ) : route === "history" ? (
         <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={MOCK_MODE} />
       ) : route === "me" && identity && identity.tier > 0 ? (
@@ -160,6 +190,7 @@ export default function App() {
           presence={presence}
           joinUrl={joinUrl}
           client={client}
+          pivot={pivot}
           variant={route === "projector" ? "projector" : "attendee"}
         />
       )}

@@ -30,6 +30,12 @@ spec:
                   name: web-openai
                   key: OPENAI_API_KEY
                   optional: true
+            - name: DEMO_OPERATOR_TOKEN
+              valueFrom:
+                secretKeyRef: {name: web-rehearsal, key: DEMO_OPERATOR_TOKEN, optional: true}
+            - name: DEMO_SIGNAL_TOKEN
+              valueFrom:
+                secretKeyRef: {name: web-rehearsal, key: DEMO_SIGNAL_TOKEN, optional: true}
           readinessProbe:
             exec:
               command: [node, -e, "fetch('http://127.0.0.1:8787/presence/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

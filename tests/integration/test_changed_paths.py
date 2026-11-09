@@ -12,7 +12,7 @@ CHECK = Path(__file__).resolve().parents[2] / "scripts/check_changed_paths.py"
 
 
 class ChangedPathsTests(TestCase):
-    def check_path(self, path, *, author="anurupkumar18", branch="anurup/evidence", rename_to=None):
+    def check_path(self, path, *, author="anurupkumar18", branch="anurup/evidence", rename_to=None, owners=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             def git(*args):
@@ -21,7 +21,7 @@ class ChangedPathsTests(TestCase):
             git("config", "user.name", "Test")
             git("config", "user.email", "test@example.invalid")
             (root / ".github").mkdir()
-            (root / ".github/owners.json").write_text(json.dumps({
+            (root / ".github/owners.json").write_text(json.dumps(owners or {
                 "default_lane": "luke",
                 "lanes": {
                     "luke": {"github_login": "lukeeskinner", "paths": []},
@@ -68,3 +68,22 @@ class ChangedPathsTests(TestCase):
     def test_legacy_owner_is_preserved(self):
         self.assertEqual(self.check_path("README.md", author="lukeeskinner", branch="luke/docs").returncode, 0)
         self.assertNotEqual(self.check_path("apps/web/src/App.tsx", author="lukeeskinner", branch="luke/docs").returncode, 0)
+
+
+    def test_agent_grant_allows_generated_sites_only(self):
+        owners = json.loads((CHECK.parent.parent / ".github/owners.json").read_text())
+        for path in ("generated/sites/att_abcdefghijkl/index.html",):
+            with self.subTest(path=path):
+                self.assertEqual(self.check_path(path, author="lukeeskinner", branch="agent/sites", owners=owners).returncode, 0)
+        for path in ("generated/site/index.html", "generated/sites-backup/index.html", "README.md", ".github/owners.json", "services/agent-workers/main.py"):
+            with self.subTest(path=path):
+                self.assertNotEqual(self.check_path(path, author="lukeeskinner", branch="agent/sites", owners=owners).returncode, 0)
+
+    def test_agent_grant_checks_identity_and_rename_boundaries(self):
+        owners = json.loads((CHECK.parent.parent / ".github/owners.json").read_text())
+        site = "generated/sites/att_abcdefghijkl/index.html"
+        self.assertNotEqual(self.check_path(site, author="someone-else", branch="agent/sites", owners=owners).returncode, 0)
+        self.assertNotEqual(self.check_path(site, author="lukeeskinner", branch="agent", owners=owners).returncode, 0)
+        self.assertNotEqual(self.check_path("README.md", rename_to=site, author="lukeeskinner", branch="agent/sites", owners=owners).returncode, 0)
+        self.assertNotEqual(self.check_path(site, rename_to="README.md", author="lukeeskinner", branch="agent/sites", owners=owners).returncode, 0)
+        self.assertEqual(self.check_path(site, author="lukeeskinner", branch="luke/site-builder", owners=owners).returncode, 0)

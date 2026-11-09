@@ -250,3 +250,90 @@
 - **Evidence/voice** · Search returned8 committed events, projection current, no last_error, matching checkpoint/index seq_no10/primary_term1. Saved incident stays resolved/durable with8 events. Real OpenAI briefing mint200, only3 permitted read tools; ephemeral discarded. Vendor secrets stay server-side, existing identities preserved. No lifecycle writes or badge reset.
 - **Review fix** · Gitar correctly identified that merge-patching the selector could retain stale keys and the documented saved-selector rollback did not exist. Whole-selector JSON patches now cut over to web and roll back to verified starter app: app. Neither patch creates a Service; host HTTPRoute stays unchanged.
 - **Owner follow-up/limits** · Luke must persist live API projection and OTLP flags; Ali must preserve web vision overlay/collector1 and server Secrets rather than reapply the older stock overlay. Physical webcam/mic and full voice transport remain untested, stage captions remain monitor/fixture, Radar badge diagnosis mock. Full release details and rollback are in docs/demo/cluster-rollout.md and deploy/web/cluster/README.md.
+
+## 2026-11-09 — Connect the video to a real incident rehearsal
+
+- **Branch** · kunj/video-incident-rehearsal, following merged PR29/213495b and README PR28/23ab021.
+- **User direction** · Keep the video/YOLO running while an induced incident is logged, role agents propose, and users receive scoped inbox updates. User clarified existing Backstage agents/inboxes, not Grok. Explicitly approved server-side existing producer credential access after inspecting the masked Secret dry run.
+- **Changes and why** · Add bounded organizer-only /demo-api rehearsal producer in the existing Node sidecar, fixed current-time cam-b/room-b count scenario, stable start intent, duplicate recovery protection, fail-visible pause, eight-minute ceiling and no human-action writes. Compact live incident, actions, agent/human feed and saved evidence sit beside video; existing board/inboxes/projector share the same API. Optional server-only web-rehearsal Secret references, nginx/Vite proxy and a concrete runbook added. YOLO counts stay separate from injected counts; no lifecycle/schema changes, external messaging or foreign-lane edits.
+- **Verification** · 149 frontend and34 Node tests pass, TypeScript/production build pass. New coverage exercises StrictMode, ambiguous start retry, other-role/cross-origin denial, one-run idempotency, recovery gating, failed ingress and expiry. Hosted rollout/full rehearsal follow publication, not claimed yet.
+- **Dependencies/limits** · Preserve all prior vendor/role Secrets, API writer, badges and collector. Existing producer/organizer bearers copied only to server Secret through Radar editor; no values committed or logged. Radar mock, queue persistence and physical mic/camera remain separately scoped limits. No simulated messages are called real notifications.
+- **Reviewed refs** · main23ab021 plus deployment PR29/1ed1e66 (now main213495b); Ali40b2270 and merged badge/API rehearsal handoff; Anurupf536b757 and README9ff5c9d; Luke's cluster identity/persistence handoff. Contracts unchanged.
+
+
+## 2026-11-09 — Publish rehearsal runtime pin
+
+- **Branch** · kunj/video-incident-rehearsal, runtimef05eb2dbb740ce8f36c0c4fb527eabf9dc8d9de6.
+- **Change** · Pin the published app/bootstrap source for the shared cluster. User approved the rehearsal producer access; web-rehearsal Secret was accepted and created with existing scoped identities, values hidden. No role credential rotation, vendor-key replacement or badge action.
+- **Verified** · Final149 frontend/34 Node tests, TypeScript/production build and two strict manifest schema checks pass. Compact feed/action UI replaces the nested full board so video and incident remain adjacent. Hosted apply and lifecycle proof follow.
+- **Refs** · main213495b (PR29), previous f05eb2d source; contract unchanged.
+
+
+## 2026-11-09 — Reconcile main and start the hosted rehearsal rollout
+
+- **Branch/refs** · kunj/video-incident-rehearsal, merged main213495b preserving PR29 and all appended handoffs.
+- **Changes** · Merge only plus this status entry; runtime source remains publishedf05eb2d. Existing cluster spec was copied and only CODE_SHA plus two server Secret references changed, Force off; Kubernetes dry run accepted1 resource, then apply succeeded. Generation10/new Pod web-6b7fc4cdf6-5kcnw: build-web complete, install-vision running. Historical Radar crash-loop alert does not match this Pod’s current initialization state.
+- **Verification** · Corrected Dockerfile path to deploy/web/Dockerfile after the extra check used apps/web/Dockerfile; the production image now builds.149 frontend/34 Node, TypeScript/build, manifest validation passed. No success claim for the hosted lifecycle until the new Pod is ready and its controls are exercised.
+
+
+## 2026-11-09 — Preserve local proxy origin checks
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Finding/fix** · Gitar identified that Vite changeOrigin rewrites Host while the browser retains Origin, making valid local rehearsal POSTs fail403. Preserve the original Host for /demo-api. The hosted nginx path already preserves Host and is unaffected; runtime staysf05eb2d.
+- **Verified** · A real Vite server proxying the actual Node routes accepts same-origin POST202 and rejects foreign Origin403. Production Docker build and nginx -t pass. Shared Pod web-6b7fc4cdf6-5kcnw now has both init containers Completed and all3runtime containers Ready; HTTPS controls started runf159236d-10c6-4e84-b8ac-7357df8a719f, actual YOLO9people/277ms, producer sample receipts committed. Lifecycle follow-up pending real30s/60s windows. No simulated success.
+
+
+## 2026-11-09 — First complete video incident proof and trace continuity
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Hosted proof** · Runf159236d-10c6-4e84-b8ac-7357df8a719f raised inc-overflow-2572a6a8ca394003add41b223b3e180b at23:06:03UTC. Organizer keyboard approval23:06:13, venue-staff-01 inbox Needs you then keyboard acceptance23:06:29, verify23:06:32. Board remained pending at52.228s, then resolved/version8 after63.925s of low-count evidence. Diagnostics: Elasticsearch durable, projection current, checkpoint/search revision60/1. Projector showed Recovering during the wait. Dash0 SQL read real trace dfb691d4741a5b0d8229699c756d4011 with7transition spans before closure. No auto human actions or shortened timer.
+- **Final improvements** · Keep valid browser traceparent on scheduled signal ingress so the new producer preserves browser-to-API correlation; malformed/zero contexts dropped. Strict Bearer syntax. Move the two-column breakpoint to48rem so video and incident are simultaneously visible in the actual959px demo pane; phones still stack.
+- **Verified** ·149 frontend +37 Node tests, TypeScript/build and diff check pass; actual Vite proxy regression remains covered. The first runtime wasf05eb2d; second rehearsal follows the trace/layout rollout. Latest main213495b unchanged; Gitar/CI passed prior f0a372e.
+
+## 2026-11-09 — Keep sampled frames out of nginx temporary files
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Finding/fix** · Actual hosted access diagnostics showed nginx buffering JPEG request bodies under /var/cache/nginx/client_temp despite the detector itself being memory-only. Disable request buffering for /camera/detect, explicitly use HTTP1.1, and allow the bounded1MiB request in the client body buffer. No new storage, logging or model behavior. A request's temporary file was not a saved recording, but the strict memory-only claim needed this gateway correction.
+- **Verification/rollout** · Final source will include this proxy fix plus52d177e trace continuity and48rem side-by-side layout. First rehearsal already resolved after63.925s evidence at checkpoint/search60/1; no active producer while replacing web. Preserve all Secrets, API writer and badge workloads.
+
+
+## 2026-11-09 — Pin the final demo runtime
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Runtime pin** ·5c154d5f345f2ec0a28283fdf67b5eaa6764e753 includes Vite origin fix, valid trace context continuity,48rem presentation and memory-only JPEG proxy. Source-only web dry run accepted1 resource, Force off; applied after the first incident resolved. Both existing Secret references remain unchanged.
+- **Verified** ·149 frontend/37 Node tests, TypeScript/production build, production Docker image and nginx -t with the real mounted vision include pass. Gitar and both CI checks green at5c154d5. Final deployed readiness/second lifecycle proof follows. No API or badge deployment changed.
+
+
+## 2026-11-09 — Keep repeat-run evidence and keyboard focus scoped
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Fix** · A newly started run with no incident ID must not fall back to the previous resolved Room B incident. Hide that old card while collecting the new30s trigger. Keep keyboard focus on the stable incident article after an action and stop inviting acceptance after it was already accepted. New regression covers previous-run separation.
+- **Verified** ·150 frontend/37 Node tests, TypeScript and explicitly live-mode production build (VITE_MOCK_API=false, voice and /otel enabled) pass. Prior default local build could prune live-only UI, so the explicit live-mode build is the relevant artifact check. No lifecycle or contract change. Final source pin/second hosted rehearsal follow this UI-only correction.
+
+
+## 2026-11-09 — Final UI runtime pin and deployment record
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30; runtimebee876c900507066c73c2a1a7ae3c4ac677f5afb.
+- **Change** · Persist the published repeat-run/focus fix pin and reconcile cluster-rollout.md with the actual incident rehearsal. Live source-only rollout dry run accepted1/0rejected, Force off; applied with existing server Secret references unchanged. Read visible YAML directly after browser Copy returned empty; live spec was5c154d5 generation11 before this source-only patch.
+- **Verified/open** ·150 UI/37 Node and explicit live-mode build pass. First full hosted run passed all real timers, durable state, role inbox and provider trace proof; final Pod readiness and second full pass follow. No badge/API/collector mutation.
+
+
+## 2026-11-09 — Second deployed rehearsal passes and demo is ready
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30; deployed sourcebee876c900507066c73c2a1a7ae3c4ac677f5afb.
+- **Ready** · Pod web-99bd97cc5-lhfms: build-web and install-vision Completed, all3runtime containers Ready. Final source checksum/model verified. No further runtime changes after this proof.
+- **Full second pass** · Run0de83610-8b16-41ef-a6bc-33370bb21976 → inc-overflow-406d947b14f841e88154b81995ac4765, raise/claim/propose23:17:48UTC, organizer keyboard approve23:18:14, venue-staff-01 scoped inbox Needs you and keyboard accept23:18:33, verify23:18:35, close23:20:03. Pending at58.806s, then64.586s evidence passed. Durable checkpoint/search122/1, projection current, version8/eight committed events. First run passed63.925s. Projector Recovering → Normal. Producer stopped; a new run is available.
+- **Cross-service proof** · Real Dash0 SQL joins browser.request (releasebee876c) and API trace d0420000bed3cc44e2e1203b897e4279; eight transition spans, eight attempts,60 HTTP and60 Elastic save spans observed. Browser service/version readback123 events. Source trace propagation works in the hosted system.959px view has adjacent video/incident and no overflow. Keyboard focus after approval is Live rehearsal incident. Live YOLO continues; final screenshot3people/192ms beside approved/acknowledged/closed protocol feed. New-run waiting state hides the previous resolved card.
+- **Privacy/validation** · Actual refreshed final nginx logs have no camera/detect temporary-file warnings; OTLP buffering is unrelated.150 UI +37 Node tests, explicit live-mode TypeScript/build, final Docker build, nginx -t with real vision include and strict two-resource web schema validation pass. Gitar origin finding is fixed and reviewed; final docs-only CI follows this push. No badge reset, lifecycle shortcut, third-party message or vendor key in the UI.
+- **Handoff/limits** · Runbook docs/demo/video-incident-rehearsal.md, release docs/demo/cluster-rollout.md. Keep organizer video and assigned staff inbox open; roles still need their existing scoped tokens, and page reload initially selects Organizer. Physical camera/mic, full voice audio, Radar service token and durable badge queue remain separate limits. Contract and foreign lanes unchanged. Reviewed latest main213495b and prior lane refs recorded above.
+
+## 2026-11-09 — Pivot: survey, attendee site, trends charts, attendee proxy limits
+
+- **Branch or PR** · `kunj/attendee-site`, based on main `de8e115`. Follows [the Kunj lane guide](../../contracts/pivot/lanes/kunj.md), steps 1 to 6.
+- **Changes and why** · New `apps/web/src/pivot/`: the five-question survey on `#/join` (`SurveyPage.tsx`), the attendee site on `#/site/<attendee_id>` (`SitePage.tsx`), organizer trends on `#/trends` (`TrendsPage.tsx`, SVG and CSS only, no new dependency), a projector strip with sites built and the latest `agent/sites` commit subject, and a holding screen on `#/trail`. `mock.ts` serves all of it from `contracts/pivot/examples.v1.json` under the existing `VITE_MOCK_API` switch. `deploy/web/nginx.conf` gains `location /api/v1/attendee/` with a 4 KB body cap, no access log, and one room-wide `limit_req` bucket (20 r/s, burst 60) because every venue phone shares a gateway address. Added [the demo script](pivot-demo-script.md).
+- **Nothing removed** · `JoinPage.tsx` and its tests are unchanged; `App.tsx` now routes `#/join` to the survey, which still calls presence join so the floor count works. Existing routes, incident screens and nginx locations are untouched.
+- **Deviations from the lane guide** · (1) The survey is a new component beside `JoinPage`, not an edit of it, to keep the existing keyboard tests valid. (2) Taps inside the generated page are read by a transparent layer over the frame that hit-tests the frame document from the parent, not by listeners attached inside the frame: a frame without `allow-scripts` may not run parent-attached listeners in Chromium. The native "Your picks" list is always shown under the frame as the keyboard path. (3) The screens use local contract types in `src/pivot/types.ts` because Anurup's typed client was unmerged (PR #34) when this was cut.
+- **Impact by lane** · Anurup: route names are `#/join`, `#/site/<attendee_id>`, `#/trends`, `#/trail`. After PR #34 merges, `#/trail` becomes `<TrailConsole pivot={pivot} mockMode={MOCK_MODE} />` and these screens move to `createPivotClient`; trends are fetched with `window=60m&interval=1m` plus `interest` and `source`. nginx answers 429 with an HTML body on the attendee routes; the survey keys on the status code. Luke: the page must keep exactly one literal `<head>` or it is not rendered and the attendee gets the plain list. The projector reads `api.github.com/repos/lukeeskinner/Backstage/commits?sha=agent/sites&path=generated/sites` without credentials. Ahmed: no web rollout has been done for this change; the nginx change needs one.
+- **Verified commands and results** · From `apps/web` on Node 22: `npx tsc --noEmit` clean; `npm test` 162 Vitest tests pass (12 new in `src/pivot/pivot.test.tsx`) and 37 Node server tests pass; `npm run build` passes. `nginx -t` on the edited config inside `nginx:1.30.5-alpine` with stub upstream hosts: syntax ok. Headless Chrome screenshots of `#/join`, `#/trends` and `#/projector` in mock mode were inspected. `python3 scripts/check_changed_paths.py --base origin/main --head HEAD --author rathodkunj2005 --branch kunj/attendee-site`: within the kunj lane.
+- **Open issues and next owner or action** · Not verified: any of this against the live API, the tap layer on a real phone, the 429 path through nginx, and the GitHub commit lookup against a real agent commit. Kunj: swap to the typed client and mount `TrailConsole` after PR #34; then one web rollout after telling Ahmed. The trends route needs the organizer token entered before opening `#/projector` for the count to show.
+- **References and latest handoffs reviewed** · main `de8e115`; pivot kickoff and lane guides at `786d07f`; open PR #34 `anurup/pivot-data` at `2fa5d03` (client and trail screen signatures read, not merged here); open PR #33 `luke/site-builder` seen in the list and not read; `ali/pivot-runtime` seen and not read. Agent board inbox for `kunj-claude`: no unread messages.
