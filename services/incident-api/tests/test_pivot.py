@@ -206,7 +206,9 @@ class PivotTests(TestCase):
             "levels": {"buckets": []}, "vibes": {"buckets": []},
             "sources": {"buckets": [{"key": "simulator", "doc_count": 2}, {"key": "qr", "doc_count": 1}]},
             "site_status": {"buckets": [{"key": "ready", "doc_count": 2}, {"key": "failed", "doc_count": 1}]},
-            "recommended": {"buckets": [{"key": "sess-014", "doc_count": 3}]}}}
+            "recommended": {"buckets": [{"key": "sess-014", "doc_count": 3}]},
+            "cohort": {"buckets": [{"key": attendee, "doc_count": 1} for attendee in
+                                     ("att_aaaaaaaaaaaa", "att_bbbbbbbbbbbb", "att_cccccccccccc")]}}}
         self.es.results["t-interactions"] = {"hits": {"total": {"value": 4}}, "aggregations": {
             "engaged": {"attendees": {"value": 2}},
             "sessions": {"buckets": [{"key": "sess-014", "doc_count": 4, "actions": {"buckets": [
@@ -349,3 +351,100 @@ class PivotTests(TestCase):
         for name in INDICES:
             self.assertIs(load_definition(name)["mappings"]["dynamic"], False, name)
         self.assertTrue(re.fullmatch(r".*contracts/pivot/elasticsearch", str(DEFINITIONS)))
+
+    def test_empty_and_partial_decisions_keep_all_required_chart_arrays(self):
+        response = self.api.get('/api/v1/pivot/trends', headers=ORGANIZER)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['agent']['decisions'], {'theme': [], 'layout': [], 'tone': []})
+        self.es.results['t-agent-ledger'] = {'aggregations': {'decisions': {'names': {'buckets': [
+            {'key': 'layout', 'values': {'buckets': [{'key': 'schedule-first', 'doc_count': 2}]}}
+        ]}}}}
+        response = self.api.get('/api/v1/pivot/trends?source=qr', headers=ORGANIZER)
+        self.assertEqual(response.json()['agent']['decisions'], {
+            'theme': [], 'layout': [{'key': 'schedule-first', 'count': 2}], 'tone': []})
+
+    def test_partial_searches_are_unavailable_instead_of_successful_empty_results(self):
+        for marker in ({'timed_out': True}, {'_shards': {'failed': 1}}):
+            with self.subTest(marker=marker):
+                self.es.results['t-sessions'] = {'hits': {'hits': []}, **marker}
+                self.assertEqual(self.submit().status_code, 503)
+                self.es.results['t-surveys'] = {'hits': {'total': {'value': 0}}, **marker}
+                response = self.api.get('/api/v1/pivot/trends', headers=ORGANIZER)
+                self.assertEqual(response.status_code, 503, response.text)
+                self.es.results['t-agent-ledger'] = {'hits': {'hits': []}, **marker}
+                response = self.api.get('/api/v1/pivot/trail/search', headers=ORGANIZER)
+                self.assertEqual(response.status_code, 503, response.text)
+                self.assertEqual(response.json()['error']['code'], 'unavailable')
+
+    def test_interest_cohort_constrains_every_ledger_aggregation(self):
+        selected, other = 'att_aaaaaaaaaaaa', 'att_bbbbbbbbbbbb'
+        self.es.results['t-surveys'] = {'hits': {'total': {'value': 1}}, 'aggregations': {
+            'cohort': {'buckets': [{'key': selected, 'doc_count': 1}], 'sum_other_doc_count': 0}}}
+        original = self.es.search
+        def cohort_search(*, index, **body):
+            if index != 't-agent-ledger':
+                return original(index=index, **body)
+            self.es.searches.append({'index': index, **body})
+            filters = body['query']['bool']['filter']
+            allowed = next((clause['terms']['attendee_id'] for clause in filters
+                            if 'attendee_id' in clause.get('terms', {})), [selected, other])
+            values = [{'key': theme, 'doc_count': 1} for attendee, theme in
+                      ((selected, 'calm-paper'), (other, 'bold-contrast')) if attendee in allowed]
+            return {'aggregations': {'decisions': {'names': {'buckets': [
+                {'key': 'theme', 'values': {'buckets': values}}]}}}}
+        self.es.search = cohort_search
+        response = self.api.get('/api/v1/pivot/trends?interest=security&source=qr', headers=ORGANIZER)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()['agent']['decisions']['theme'], [{'key': 'calm-paper', 'count': 1}])
+        query = next(call for call in self.es.searches if call['index'] == 't-agent-ledger')
+        self.assertIn({'terms': {'attendee_id': [selected]}}, query['query']['bool']['filter'])
+        self.assertIn({'term': {'source': 'qr'}}, query['query']['bool']['filter'])
+        survey_query = next(call for call in self.es.searches if call['index'] == 't-surveys')
+        self.assertIn('cohort', survey_query['aggs'])
+
+    def test_empty_interest_cohort_matches_no_ledger_events(self):
+        self.es.results['t-surveys'] = {'hits': {'total': {'value': 0}}, 'aggregations': {'cohort': {'buckets': []}}}
+        response = self.api.get('/api/v1/pivot/trends?interest=security', headers=ORGANIZER)
+        self.assertEqual(response.status_code, 200, response.text)
+        query = next(call for call in self.es.searches if call['index'] == 't-agent-ledger')
+        self.assertIn({'match_none': {}}, query['query']['bool']['filter'])
+
+    def test_incomplete_interest_cohort_is_not_silently_truncated(self):
+        for cohort in ({'buckets': [{'key': 'att_aaaaaaaaaaaa', 'doc_count': 1}], 'sum_other_doc_count': 1},
+                       {'buckets': [], 'sum_other_doc_count': 0}):
+            self.es.results['t-surveys'] = {'hits': {'total': {'value': 2}}, 'aggregations': {'cohort': cohort}}
+            response = self.api.get('/api/v1/pivot/trends?interest=security', headers=ORGANIZER)
+            self.assertEqual(response.status_code, 503, response.text)
+
+    def test_orphan_and_temporarily_unavailable_surveys_preserve_run_events(self):
+        from backstage_api.engine import ApiError
+        from unittest.mock import patch
+        self.es.results['t-agent-ledger'] = {'hits': {'hits': [{'_source': {
+            'event_id': 'run_b3x6t2m7q4ha:0001', 'run_id': 'run_b3x6t2m7q4ha',
+            'attendee_id': 'att_k7m2qx4n3w5p', 'seq': 1, 'title': 'Started'}}]}}
+        for status in (404, 503):
+            with patch.object(self.api.app.state.pivot, 'survey', side_effect=ApiError(status, 'unavailable', 'Unavailable')):
+                response = self.api.get('/api/v1/pivot/trail/runs/run_b3x6t2m7q4ha', headers=ORGANIZER)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertIsNone(response.json()['site'])
+            self.assertIsNone(response.json()['survey'])
+            self.assertEqual(len(response.json()['events']), 1)
+
+    def test_commit_urls_are_bound_to_exact_repository_and_sha(self):
+        sha = 'a' * 40
+        good = 'https://github.com/lukeeskinner/Backstage/commit/' + sha
+        attendee_id = self.submit().json()['attendee_id']
+        for url in (good, good.replace('https:', 'http:'), good.replace('github.com', 'evil.test'),
+                    good.replace('github.com', 'github.com.evil.test'), good.replace('Backstage', 'Other'),
+                    good + '?token=x', good + '#fragment', good.replace(sha, 'b' * 40)):
+            self.es.docs[('t-surveys', attendee_id)]['site'].update(commit_url=url, commit_sha=sha)
+            self.es.results['t-agent-ledger'] = {'hits': {'total': {'value': 1}, 'hits': [{'_source': {
+                'run_id': 'run_b3x6t2m7q4ha', 'attendee_id': attendee_id, 'seq': 1,
+                'commit': {'mode': 'github', 'sha': sha, 'url': url}}}]}}
+            expected = good if url == good else None
+            public = self.api.get('/api/v1/attendee/' + attendee_id)
+            self.assertEqual(public.json()['site']['commit_url'], expected)
+            trail = self.api.get('/api/v1/pivot/trail/search', headers=ORGANIZER)
+            self.assertEqual(trail.json()['items'][0]['commit']['url'], expected)
+            run = self.api.get('/api/v1/pivot/trail/runs/run_b3x6t2m7q4ha', headers=ORGANIZER)
+            self.assertEqual(run.json()['site']['commit_url'], expected)
