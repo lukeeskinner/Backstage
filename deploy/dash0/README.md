@@ -11,6 +11,7 @@ The collector is the only workload that holds a Dash0 credential. Everything her
 | `dash0-secret.example.yaml` | Placeholder Secret `dash0-credentials` (keys `DASH0_OTLP_ENDPOINT`, `DASH0_AUTH_TOKEN`, optional `DASH0_DATASET`). Not in the kustomization. | Create the real one with `kubectl create secret` (command in the file) |
 | `slo-check-rules.yaml` | Inactive historical SLO proposal; do not apply (no corresponding emitter) | Deferred outside incident-evidence scope |
 | `dashboard-incident-timing.yaml` | `PersesDashboard` for measured HTTP, ES, search, document projection and revision lag | Dash0 operator, or `dash0 dashboards create -f` |
+| `dashboard-attendee-pipeline.yaml` | `PersesDashboard` for survey, tap, recommendation and pivot Elasticsearch series. Not yet created in Dash0 | Dash0 operator, or `dash0 dashboards create -f` |
 | `metrics.md` | Implemented metric names, units, labels and interpretation | Luke implements the emitter |
 
 Regenerate the ConfigMap after editing the collector config, and check drift:

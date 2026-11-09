@@ -1,12 +1,17 @@
 """Attendee survey, recommendation, trends and trail routes against a fake Elasticsearch boundary."""
+import json
+import os
 import re
 from copy import deepcopy
 from datetime import datetime, timezone
 from unittest import TestCase
+from unittest.mock import patch
 
 from elastic_transport import ApiResponseMeta, HttpHeaders, NodeConfig
 from elasticsearch import NotFoundError
 from fastapi.testclient import TestClient
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 
 from backstage_api.engine import Identity
 from backstage_api.main import create_app
@@ -32,6 +37,7 @@ def missing():
 class FakeElasticsearch:
     def __init__(self):
         self.docs, self.indexed, self.searches, self.results, self.count_value = {}, [], [], {}, 0
+        self.updates, self.mappings = [], []
 
     def index(self, *, index, document, id=None, op_type=None, **_kwargs):
         key = id or f"auto-{len(self.indexed)}"
@@ -62,9 +68,21 @@ class FakeElasticsearch:
         self.bulked = list(operations)
         return {"errors": False}
 
-    aliases, created, bulked = frozenset(), [], []
+    aliases, created, bulked, semantic_broken = frozenset(), [], [], False
+
+    def update(self, *, index, id, doc, if_seq_no, if_primary_term, **_kwargs):
+        self.updates.append({"index": index, "id": id, "doc": deepcopy(doc), "if_seq_no": if_seq_no,
+                             "if_primary_term": if_primary_term})
+        self.docs[(index, id)]["site"].update(doc.get("site", {}))
+        return {"result": "updated"}
+
+    def put_mapping(self, *, index, properties, **_kwargs):
+        self.mappings.append({"index": index, "properties": properties})
+        return {"acknowledged": True}
 
     def search(self, *, index, **body):
+        if self.semantic_broken and '"semantic"' in json.dumps(body):
+            raise RuntimeError("field is not semantic_text")
         self.searches.append({"index": index, **body})
         return deepcopy(self.results.get(index, {"hits": {"total": {"value": 0}, "hits": []}}))
 
@@ -261,6 +279,69 @@ class PivotTests(TestCase):
         self.assertEqual(action, {"index": {"_index": "t-sessions", "_id": "sess-014"}})
         self.assertEqual((session["starts_at"], session["ends_at"]), ("2026-11-09T23:45:00Z", "2026-11-10T00:20:00Z"))
         self.assertNotIn("offset_minutes", session)
+
+    def stuck(self, attendee_id, attempt, updated_at):
+        self.es.docs[("t-surveys", attendee_id)]["site"].update(
+            status="building", run_id="run_b3x6t2m7q4ha", attempt=attempt, updated_at=updated_at)
+        return self.api.get(f"/api/v1/attendee/{attendee_id}").json()["site"]["status"]
+
+    def test_build_stuck_for_ninety_seconds_is_requeued_once_then_failed(self):
+        attendee_id = self.submit().json()["attendee_id"]
+        self.assertEqual(self.stuck(attendee_id, 1, "2026-11-09T23:29:00Z"), "building")
+        self.assertEqual(self.es.updates, [])
+        self.assertEqual(self.stuck(attendee_id, 1, "2026-11-09T23:28:00Z"), "queued")
+        update = self.es.updates[-1]
+        self.assertEqual((update["id"], update["if_seq_no"], update["if_primary_term"]), (attendee_id, 1, 1))
+        self.assertEqual(update["doc"], {"site": {"status": "queued", "updated_at": "2026-11-09T23:30:00Z"}})
+        self.assertEqual(self.stuck(attendee_id, 2, "2026-11-09T23:28:00Z"), "failed")
+
+    def semantic_app(self):
+        with patch.dict(os.environ, {"PIVOT_SEMANTIC": "on"}):
+            return TestClient(create_app(identities=IDENTITIES, clock=lambda: NOW, pivot_client=self.es, pivot_prefix="t"))
+
+    def test_semantic_option_adds_a_named_semantic_clause_over_the_whole_profile(self):
+        api = self.semantic_app()
+        self.es.results["t-sessions"]["hits"]["hits"][0]["matched_queries"] = ["semantic", "interest"]
+        response = api.post("/api/v1/attendee/surveys", json={"answers": ANSWERS})
+        query = next(call for call in self.es.searches if call["index"] == "t-sessions")["query"]["bool"]
+        self.assertIn({"semantic": {"field": "semantic", "_name": "semantic",
+                                    "query": "observability ai-agents practitioner Find talks on cutting alert noise"}},
+                      query["should"])
+        self.assertEqual([reason["code"] for reason in response.json()["recommendations"][0]["reasons"]],
+                         ["interest", "semantic"])
+        plain = next(call for call in self.submit() and self.es.searches[::-1] if call["index"] == "t-sessions")
+        self.assertNotIn('"semantic"', json.dumps(plain))
+
+    def test_semantic_failure_falls_back_to_lexical_and_stays_off(self):
+        api = self.semantic_app()
+        self.es.semantic_broken = True
+        response = api.post("/api/v1/attendee/surveys", json={"answers": ANSWERS})
+        self.assertEqual(response.status_code, 201, response.text)
+        self.assertEqual(len(response.json()["recommendations"]), 1)
+        self.assertIs(api.app.state.pivot.semantic, False)
+
+    def test_semantic_provision_maps_the_field_and_seeds_its_text(self):
+        api = self.semantic_app()
+        report = api.app.state.pivot.provision(seed=True, pipelines=False)
+        self.assertEqual(self.es.mappings, [{"index": "t-sessions", "properties": {"semantic": {"type": "semantic_text"}}}])
+        self.assertEqual(report["semantic"], "mapped")
+        self.assertIn("Alert Fatigue Is a Design Bug", self.es.bulked[27]["semantic"])
+        self.api.app.state.pivot.provision(seed=True, pipelines=False)
+        self.assertNotIn("semantic", self.es.bulked[27])
+
+    def test_surveys_taps_and_recommendation_time_are_measured_without_attendee_ids(self):
+        reader = InMemoryMetricReader()
+        api = TestClient(create_app(identities=IDENTITIES, clock=lambda: NOW, pivot_client=self.es, pivot_prefix="t",
+                                    meter_provider=MeterProvider(metric_readers=[reader])))
+        attendee_id = api.post("/api/v1/attendee/surveys", json={"answers": ANSWERS, "source": "simulator"}).json()["attendee_id"]
+        api.post(f"/api/v1/attendee/{attendee_id}/interactions", json={"session_id": "sess-014", "action": "save"})
+        points = {metric.name: [dict(point.attributes) for point in metric.data.data_points]
+                  for resource in reader.get_metrics_data().resource_metrics
+                  for scope in resource.scope_metrics for metric in scope.metrics}
+        self.assertEqual(points["backstage.pivot.surveys"], [{"source": "simulator"}])
+        self.assertEqual(points["backstage.pivot.interactions"], [{"action": "save", "source": "simulator"}])
+        self.assertEqual(points["backstage.pivot.recs.duration"], [{"outcome": "success"}])
+        self.assertNotIn(attendee_id, json.dumps(points))
 
     def test_index_definitions_ignore_unknown_fields_instead_of_rejecting_writes(self):
         from backstage_api.pivot import DEFINITIONS, INDICES, load_definition

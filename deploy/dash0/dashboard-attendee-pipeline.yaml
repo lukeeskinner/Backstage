@@ -1,0 +1,142 @@
+# Attendee-site pipeline, measured instruments only. Missing samples remain no data. See metrics.md.
+# Not yet created in Dash0 or checked against live series.
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: backstage-attendee-pipeline
+  namespace: team-backstage
+spec:
+  duration: 1h
+  display:
+    name: Backstage attendee-site pipeline
+  layouts:
+  - kind: Grid
+    spec:
+      items:
+      - x: 0
+        y: 0
+        width: 12
+        height: 8
+        content:
+          $ref: '#/spec/panels/surveys'
+      - x: 12
+        y: 0
+        width: 12
+        height: 8
+        content:
+          $ref: '#/spec/panels/interactions'
+      - x: 0
+        y: 8
+        width: 12
+        height: 8
+        content:
+          $ref: '#/spec/panels/recs_duration'
+      - x: 12
+        y: 8
+        width: 12
+        height: 8
+        content:
+          $ref: '#/spec/panels/pivot_es_duration'
+      - x: 0
+        y: 16
+        width: 12
+        height: 8
+        content:
+          $ref: '#/spec/panels/pivot_es_errors'
+      - x: 12
+        y: 16
+        width: 12
+        height: 8
+        content:
+          $ref: '#/spec/panels/attendee_http'
+  panels:
+    surveys:
+      kind: Panel
+      spec:
+        display:
+          name: Surveys queued / second by source
+        plugin:
+          kind: TimeSeriesChart
+          spec: {}
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: sum by (service_version,source) (rate({otel_metric_name="backstage.pivot.surveys",service_name="incident-api"}[5m]))
+    interactions:
+      kind: Panel
+      spec:
+        display:
+          name: Recommendation taps / second by action
+        plugin:
+          kind: TimeSeriesChart
+          spec: {}
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: sum by (service_version,action) (rate({otel_metric_name="backstage.pivot.interactions",service_name="incident-api"}[5m]))
+    recs_duration:
+      kind: Panel
+      spec:
+        display:
+          name: Recommendation query p95 duration (seconds)
+        plugin:
+          kind: TimeSeriesChart
+          spec: {}
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: histogram_quantile(0.95, sum by (service_version,outcome) (rate({otel_metric_name="backstage.pivot.recs.duration",service_name="incident-api"}[5m])))
+    pivot_es_duration:
+      kind: Panel
+      spec:
+        display:
+          name: Pivot Elasticsearch p95 duration by operation (seconds)
+        plugin:
+          kind: TimeSeriesChart
+          spec: {}
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: histogram_quantile(0.95, sum by (service_version,operation) (rate({otel_metric_name="backstage.elasticsearch.request.duration",service_name="incident-api",operation=~"pivot.+"}[5m])))
+    pivot_es_errors:
+      kind: Panel
+      spec:
+        display:
+          name: Pivot Elasticsearch errors / second by operation
+        plugin:
+          kind: TimeSeriesChart
+          spec: {}
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: sum by (service_version,operation) (rate({otel_metric_name="backstage.persistence.operations",service_name="incident-api",operation=~"pivot.+",outcome="error"}[5m]))
+    attendee_http:
+      kind: Panel
+      spec:
+        display:
+          name: Attendee and pivot HTTP responses / second by route and status
+        plugin:
+          kind: TimeSeriesChart
+          spec: {}
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: sum by (service_version,route,status_code) (rate({otel_metric_name="backstage.http.requests",service_name="incident-api",route=~"/api/v1/(attendee|pivot).*"}[5m]))

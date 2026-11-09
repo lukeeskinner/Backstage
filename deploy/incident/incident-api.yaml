@@ -41,7 +41,7 @@ spec:
           command: [python, /bootstrap/bootstrap.py]
           env:
             - name: CODE_SHA
-              value: f536b757fe510b3af8a4db76a09fd88d81ae6213
+              value: 831aecea2469127b8cbb87483db4c26d39d0912b
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
           resources:
@@ -64,13 +64,13 @@ spec:
           env:
             - {name: APP_MODE, value: live}
             # Keep this revision equal to prepare-runtime CODE_SHA above when releasing.
-            - {name: CODE_SHA, value: f536b757fe510b3af8a4db76a09fd88d81ae6213}
+            - {name: CODE_SHA, value: 831aecea2469127b8cbb87483db4c26d39d0912b}
             # Bootstrap the isolated evidence alias/mapping before changing to true.
             - {name: EVIDENCE_PROJECTION_ENABLED, value: "false"}
-            # Attendee-site pivot. Needs a CODE_SHA that contains backstage_api/pivot.py; a failure never stops startup.
+            # Attendee-site pivot; a failure never stops startup. Roll back to f536b757fe510b3af8a4db76a09fd88d81ae6213 with both flags false.
             # Auto bootstrap creates only missing <prefix>-sessions/surveys/agent-ledger/interactions and seeds sessions.
-            - {name: PIVOT_ENABLED, value: "false"}
-            - {name: PIVOT_AUTO_BOOTSTRAP, value: "false"}
+            - {name: PIVOT_ENABLED, value: "true"}
+            - {name: PIVOT_AUTO_BOOTSTRAP, value: "true"}
             - {name: OTEL_ENABLED, value: "true"}
             - {name: OTEL_SERVICE_NAME, value: incident-api}
             - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: 'http://otel-collector:4318'}
