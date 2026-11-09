@@ -152,11 +152,13 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(overlay["namespace"], "team-backstage")
         self.assertIn("../badge", overlay["resources"])
         self.assertIn("../incident", overlay["resources"])
+        self.assertIn("agent-workers.yaml", overlay["resources"])
         for resource in overlay["resources"]:
-            self.assertTrue((PLATFORM / resource / "kustomization.yaml").is_file(), resource)
+            path = PLATFORM / resource
+            self.assertTrue(path.is_file() or (path / "kustomization.yaml").is_file(), resource)
 
     def test_job_scripts_parse(self):
-        for name in ("drill-job.yaml", "incident-rehearsal-job.yaml"):
+        for name in ("drill-job.yaml", "incident-rehearsal-job.yaml", "attendee-wave-job.yaml"):
             with self.subTest(job=name):
                 (job,) = [d for d in yaml.safe_load_all((BADGE / name).read_text(encoding="utf-8")) if d]
                 self.assertEqual(job["kind"], "Job")
@@ -262,3 +264,76 @@ class ReadmeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@unittest.skipIf(yaml is None, "PyYAML not installed")
+class AgentManifestTests(unittest.TestCase):
+    """Guardrails from contracts/pivot/lanes/ahmed.md step 3b."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.deployment = yaml.safe_load((PLATFORM / "agent-workers.yaml").read_text(encoding="utf-8"))
+        cls.pod = cls.deployment["spec"]["template"]["spec"]
+
+    def test_single_replica_recreate_locked_down(self):
+        self.assertEqual(self.deployment["spec"]["replicas"], 1)
+        self.assertEqual(self.deployment["spec"]["strategy"]["type"], "Recreate")
+        self.assertFalse(self.pod["automountServiceAccountToken"])
+        self.assertTrue(self.pod["securityContext"]["runAsNonRoot"])
+        for container in self.pod["initContainers"] + self.pod["containers"]:
+            self.assertTrue(container["securityContext"]["readOnlyRootFilesystem"], container["name"])
+
+    def test_cpu_limits_fit_the_quota_plan(self):
+        (init,) = self.pod["initContainers"]
+        (agent,) = self.pod["containers"]
+        self.assertEqual(agent["resources"]["limits"], {"cpu": "250m", "memory": "256Mi"})
+        self.assertIn(init["resources"]["limits"]["cpu"], ("500m", "250m"))
+
+    def test_only_explicit_secret_keys(self):
+        (agent,) = self.pod["containers"]
+        self.assertNotIn("envFrom", agent)
+        refs = {(e["valueFrom"]["secretKeyRef"]["name"], e["valueFrom"]["secretKeyRef"]["key"])
+                for e in agent["env"] if "valueFrom" in e}
+        self.assertEqual(refs, {
+            ("incident-secrets", "ELASTICSEARCH_URL"), ("incident-secrets", "ELASTICSEARCH_API_KEY"),
+            ("incident-secrets", "ELASTICSEARCH_INDEX_PREFIX"), ("web-openai", "OPENAI_API_KEY"),
+            ("agent-github", "GITHUB_TOKEN"),
+        })
+
+    def test_starts_safe_and_pins_match(self):
+        (init,) = self.pod["initContainers"]
+        (agent,) = self.pod["containers"]
+        env = {e["name"]: e.get("value") for e in agent["env"]}
+        self.assertEqual(env["AGENT_BUILDER"], "template")
+        # Luke released github mode at e3df36f once agent-github existed.
+        self.assertIn(env["AGENT_COMMIT_MODE"], ("dry-run", "github"))
+        self.assertEqual(env["OTEL_EXPORTER_OTLP_ENDPOINT"], "http://otel-collector:4318")
+        self.assertEqual(env["OTEL_SERVICE_NAME"], "agent-workers")
+        init_sha = {e["name"]: e["value"] for e in init["env"]}["CODE_SHA"]
+        self.assertEqual(env["CODE_SHA"], init_sha)
+
+    def test_bootstrap_extracts_only_agent_and_pivot_contract(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("agent_bootstrap", PLATFORM / "agent-bootstrap.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        files = {
+            "repo-abc/services/agent-workers/agent_workers/__main__.py": b"print('agent')",
+            "repo-abc/services/agent-workers/requirements.txt": b"",
+            "repo-abc/contracts/pivot/examples.v1.json": b"{}",
+            "repo-abc/services/incident-api/backstage_api/main.py": b"secret stuff",
+            "repo-abc/services/agent-workers/../../evil.py": b"x",
+        }
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode="w:gz") as archive:
+            for name, data in files.items():
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                archive.addfile(info, io.BytesIO(data))
+        with tempfile.TemporaryDirectory() as tmp:
+            count = module.extract_runtime(buffer.getvalue(), Path(tmp))
+            got = {p.relative_to(tmp).as_posix() for p in Path(tmp).rglob("*") if p.is_file()}
+        self.assertEqual(count, 3)
+        self.assertEqual(got, {"services/agent-workers/agent_workers/__main__.py",
+                               "services/agent-workers/requirements.txt", "contracts/pivot/examples.v1.json"})
