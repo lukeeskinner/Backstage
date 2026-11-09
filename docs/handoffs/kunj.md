@@ -25,3 +25,12 @@ First PR acceptance is a keyboard-operable overflow flow using the shared fixtur
 - Verified commands and results: `npm run typecheck` clean; `npx vitest run` 23 files, 154 tests passed; `node scripts/record-tour.mjs` produced a 4 min 17 s MP4 with every step reached.
 - Open issues and next owner or action: Kunj to merge #27 then the tour PR and redeploy; better voice needs a Premium macOS voice or a server-side TTS call.
 - References and latest handoffs reviewed: `origin/main` at `690fc6a`; this log had no earlier entries.
+
+## 2026-11-09 — Demo mode now includes the video-to-incident rehearsal
+
+- Branch or PR: `kunj/demo-tour` (#32), now merged with `origin/main` (`#31` pivot lanes) and `origin/kunj/video-incident-rehearsal` (#30, `22a226c`).
+- Changes and why: `IncidentRehearsal` takes an optional `RehearsalDriver`. Without it the panel uses the server `/demo-api` exactly as in #30. In mock and demo mode `src/demo/mockRehearsal.ts` drives it from the in-browser mock, labelled "Demo mode · simulated rehearsal", and the panel shows the live incident scene. The tour gains an `inject` step that presses Inject crowd surge so the incident opens beside the playing video.
+- Impact by lane, including setup or contract changes: none; the live rehearsal path, tokens and nginx routes from #30 are unchanged.
+- Verified commands and results: `npx tsc --noEmit` clean; `npx vitest run` 24 files, 157 tests passed; `npm test` node suites 37 passed; `node scripts/record-tour.mjs` reached all 26 steps, 4 min 39 s with voiceover.
+- Open issues and next owner or action: merge order #27 → #30 → #32. The recording is not committed (`recordings/` is ignored).
+- References and latest handoffs reviewed: `docs/demo/video-incident-rehearsal.md` and `docs/demo/handoff-log.md` on #30.

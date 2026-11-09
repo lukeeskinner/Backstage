@@ -17,6 +17,8 @@ import { createMockTransport, DEMO_IDENTITIES, MOCK_PRINCIPALS } from "./mock/tr
 import { VoiceBriefingControl } from "./ui/VoiceBriefingControl";
 import { useInbox } from "./hooks/useInbox";
 import { VideoDemo } from "./demo/VideoDemo";
+import { IncidentRehearsal } from "./demo/IncidentRehearsal";
+import { createMockRehearsal } from "./demo/mockRehearsal";
 import { HistoryView } from "./ui/HistoryView";
 import { InboxView } from "./ui/InboxView";
 import { FloorMap } from "./visuals/FloorMap";
@@ -98,6 +100,8 @@ export default function App() {
     () => new MockIncidentApi({ principals: MOCK_PRINCIPALS, startHidden: true, dispatchDelayMs: 2500, tickMs: 2000, backgroundStepMs: 9000 }),
   );
   const [tourPresence] = useState(() => new PresenceSimulator());
+  const [tourRehearsal] = useState(() => createMockRehearsal(tourApi, "mock-organizer"));
+  const [mockRehearsal] = useState(() => (mockApi ? createMockRehearsal(mockApi, "mock-organizer") : undefined));
   const activeMock = touring ? tourApi : mockApi;
   const mockActive = MOCK_MODE || touring;
 
@@ -127,9 +131,10 @@ export default function App() {
     [tourApi, tourPresence],
   );
   const resetTour = useCallback(() => {
+    tourRehearsal.reset();
     tourApi.reset();
     tourPresence.reset();
-  }, [tourApi, tourPresence]);
+  }, [tourApi, tourPresence, tourRehearsal]);
   const startTour = useCallback(() => {
     resetTour();
     setAnnouncement("");
@@ -190,7 +195,11 @@ export default function App() {
       devPanel={devPanel}
     >
       {route === "demo" ? (
-        <VideoDemo key={`video-${credentialGeneration}`} token={mockActive ? "" : token} />
+        <VideoDemo key={`video-${credentialGeneration}`} token={mockActive ? "" : token}>
+          {identity && identity.tier > 0 && (mockActive || !MOCK_MODE)
+            ? <IncidentRehearsal key={`rehearsal-${identityId}-${credentialGeneration}`} client={client} token={token} organizer={identity.tier === 3} announce={setAnnouncement} driver={mockActive ? (touring ? tourRehearsal : mockRehearsal) : undefined} />
+            : <p>Use an authorized role to follow the incident rehearsal. Attendees can watch the sanitized status view.</p>}
+        </VideoDemo>
       ) : route === "history" ? (
         <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={mockActive} />
       ) : route === "me" && identity && identity.tier > 0 ? (

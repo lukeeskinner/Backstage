@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { boxesAt, readDetections, zoneCounts, type ClipDetections, type PersonBox } from "./detections";
 import "./video-demo.css";
+import type { ReactNode } from "react";
 
 type Mode = "demo" | "file" | "camera";
 const DEMO = "/demo/conference-30s.mp4";
 
-export function VideoDemo({ token = "" }: { token?: string }) {
+export function VideoDemo({ token = "", children }: { token?: string; children?: ReactNode }) {
   const [mode, setMode] = useState<Mode>("demo");
   const [source, setSource] = useState(DEMO);
   const [name, setName] = useState("Silicon Valley conference cut");
@@ -154,9 +155,10 @@ export function VideoDemo({ token = "" }: { token?: string }) {
         {error ? <p role="alert" className="notice">{error}</p> : null}
       </section>
       <aside className="video-demo__side" aria-label="Vision readout and sources">
+        {children}
         <section className="video-demo__readout"><h2>Person detections</h2><div className="video-demo__total"><strong>{sampled ? shown.length : "—"}</strong><span>{sampled ? `${shown.length === 1 ? "person" : "people"} in sampled frame` : enabled ? "waiting for a sample" : "detection paused"}</span></div><dl><div><dt>Floor left</dt><dd>{sampled ? counts.left : "—"}</dd></div><div><dt>Aisle right</dt><dd>{sampled ? counts.right : "—"}</dd></div><div><dt>Source</dt><dd>{mode === "demo" ? "Recorded YOLO results" : isLocal ? "Local inference" : "Cluster inference"}</dd></div><div><dt>Model</dt><dd>{mode === "demo" ? recording?.model ?? "Loading…" : "YOLO"}</dd></div>{latency !== null ? <div><dt>Inference</dt><dd>{latency} ms</dd></div> : null}</dl>
           <label className="video-demo__zone-label">Zone divider <input type="range" min="20" max="80" value={divider * 100} onChange={(e) => setDivider(Number(e.target.value) / 100)} /></label>
-          <p>Preview counts only. This page does not send incident signals or bypass approval and recovery checks.</p>
+          <p>Measured YOLO counts are preview only. The labeled rehearsal below injects separate signals through normal approval and recovery checks.</p>
         </section>
         <section className="video-demo__sources"><h2>Video source</h2><button type="button" className="btn btn--quiet" onClick={stopCamera}>Use conference demo</button>
           <button type="button" className="btn btn--primary" onClick={() => { resetSource(); setMode("file"); setSource(DEMO); setName("Silicon Valley conference cut"); setEnabled(true); }}>Run YOLO live</button>
