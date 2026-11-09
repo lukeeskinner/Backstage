@@ -142,3 +142,11 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Verified** · Badge tests pass (46). Cluster evidence comes from Radar `wait_for`, `get_workload_logs` and `get_pod_logs`, plus in-cluster Jobs `pivot-status-1` and `pivot-status-2`, which read `/pivot/trends` and `/pivot/trail/*` with the organizer token inside the pod and print only ids, steps and counts.
 - **Open** · The ledger write failure (Luke and Anurup), the `agent-github` Secret (Luke), Anurup's final API SHA, Kunj's web SHA (main is now `0cb48fd` with the survey, site and trail screens), and the full `attendee-wave` run, which waits on the agent fix so simulated surveys aren't failed.
 - **Reviewed** · main `0cb48fd` (PRs #33, #34, #35), `anurup-log.md` "Pivot data plane", `luke-log.md` "Pivot attendee site worker", `services/agent-workers` at 13002f6, `contracts/pivot/elasticsearch/agent-ledger-v1.json`.
+
+## 2026-11-09 — Final pivot API rolled; agent still paused on the ledger timeout
+
+- **Branch or PR** · `ali/pivot-runtime`, with main `0cb48fd` merged in.
+- **4 · API rollout (Anurup's "Finish the pivot lane" handoff)** · About 23:40 UTC, a guarded JSON patch moved `incident-api` from `2fa5d03` to the final source `831aecea2469127b8cbb87483db4c26d39d0912b`: both `CODE_SHA` values plus `service.version`. `PIVOT_ENABLED=true` and `PIVOT_AUTO_BOOTSTRAP=true` were already set; `PIVOT_SEMANTIC` stays unset (off) as Anurup advises. Rolled out 1/1 in 36 s. Rollback: `f536b75` with both flags `false`.
+- **Agent** · Still at 0 replicas. Anurup reproduced the cause (see `anurup-log.md`, 23:39 UTC): the ledger create is stored, but `refresh=wait_for` exceeds the worker's hard-coded Elasticsearch `request_timeout=5` in `services/agent-workers/agent_workers/__main__.py`, so the worker marks the survey failed. A 10 s timeout passed his isolated smoke. This needs a code fix in Luke's lane; a manifest setting can't change it. When there's a new agent SHA, I'll pin it and scale to 1.
+- **GitHub token** · `agent-github` still doesn't exist. A token was offered in chat; it was not used and should be revoked. The Secret must be entered by its owner through Radar's Secret editor.
+- **Open** · Agent fix and `agent-github` (Luke), web SHA (Kunj), the full `attendee-wave` run after the agent builds a site, and Radar evidence.
