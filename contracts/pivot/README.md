@@ -119,7 +119,7 @@ There is no HTTP call between the API and the agent.
 2. It claims the document with `if_seq_no` and `if_primary_term`, setting `site.status` to `building`, a new `site.run_id`, and `site.attempt` plus one. A 409 means another worker won; move on.
 3. It writes ledger documents with `op_type=create` and never updates one.
 4. It finishes by writing `site.status`, `site.builder`, `site.commit_mode`, `site.html`, `site.html_sha256`, `site.spec`, `site.commit_sha`, `site.commit_url` and `site.updated_at`. A dry-run build leaves the two commit fields null.
-5. Not built yet: re-queueing a survey stuck in `building`. Until it is, the agent should set `site.status` to `failed` itself when a run dies.
+5. When an attendee's page polls and finds a build silent in `building` for more than 90 s, the API re-queues it if `site.attempt` is below 2 and otherwise marks it `failed`. The agent still marks its own failures.
 
 ### One trace from tap to commit
 
@@ -139,7 +139,7 @@ What Luke's agent writes and Kunj's page renders:
 
 | Service | New settings |
 | --- | --- |
-| Incident API | `PIVOT_ENABLED`, `PIVOT_AUTO_BOOTSTRAP`, `PIVOT_MAX_BUILDS_PER_HOUR` (default 300). Semantic search is not built; recommendations are lexical with a trending boost. |
+| Incident API | `PIVOT_ENABLED`, `PIVOT_AUTO_BOOTSTRAP`, `PIVOT_MAX_BUILDS_PER_HOUR` (default 300), `PIVOT_SEMANTIC` (`on` or `off`, default `off`). Recommendations are lexical with a trending boost. `on` adds a `semantic_text` clause to the same query and needs an inference endpoint; it is untested against a real cluster and falls back to lexical on any failure. |
 | Agent | `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`, `ELASTICSEARCH_INDEX_PREFIX`, `OPENAI_API_KEY`, `AGENT_OPENAI_MODEL`, `AGENT_BUILDER` (`template` or `openai`), `AGENT_COMMIT_MODE` (`dry-run` or `github`), `GITHUB_TOKEN`, `GITHUB_REPO`, `AGENT_BRANCH` (`agent/sites`), `AGENT_SIM_COMMIT_EVERY` (default 10), the standard `OTEL_*` |
 
 ## Handoffs
