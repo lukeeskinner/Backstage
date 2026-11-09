@@ -23,6 +23,9 @@ Rollback: restore the prior Deployment YAML/published source pin. For this sessi
 
 ## Verified event runtime
 
-The quota-safe web Pod has three ready containers, CPU limits250m/250m/1core and a1core dependency init. Source36c5b995340fb5fb18e247b1bdf52edfc813108d includes the provider-free inspector UI from main; build settings enable /otel, demo environment and the same source SHA as service.version. Collector uses250m CPU, its own Dash0 Secret, and the HTTPS CORS origin. See docs/demo/handoff-log.md for the actual smoke and provider readback evidence. Never reapply Ali’s older stock bootstrap over this overlay: it omits vision and keeps collector0.
+The quota-safe web Pod has three ready containers, CPU limits250m/250m/1core and a1core dependency init. Source5c154d5f345f2ec0a28283fdf67b5eaa6764e753 includes the provider-free inspector UI from main; build settings enable /otel, demo environment and the same source SHA as service.version. Collector uses250m CPU, its own Dash0 Secret, and the HTTPS CORS origin. See docs/demo/handoff-log.md for the actual smoke and provider readback evidence. Never reapply Ali’s older stock bootstrap over this overlay: it omits vision and keeps collector0.
 
 The API runtime isf536b757, with a separate strict evidence alias backstage-demo-incident-evidence provisioned from the checksum-verified upstream bootstrap. Its live env enables projection and OTLP to http://otel-collector:4318. These API settings belong in Luke’s owned deployment overlay; record them for him rather than editing deploy/incident from this lane. The generated identity map, Elastic checkpoint and badge queue are preserved.
+
+
+The video incident rehearsal adds optional server-only web-rehearsal keys DEMO_OPERATOR_TOKEN and DEMO_SIGNAL_TOKEN. Preserve the existing organizer and cam-b/room-b scopes; never inject producer or vendor credentials into VITE_ settings. See docs/demo/video-incident-rehearsal.md. Pause new rehearsals before replacing web; its scheduler is in memory, while committed incidents remain durable. The detector route disables request buffering and has a1MiB memory/body limit, preventing nginx JPEG temporary files.

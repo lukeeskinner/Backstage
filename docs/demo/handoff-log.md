@@ -295,3 +295,10 @@
 - **Branch/PR** · kunj/video-incident-rehearsal, PR30.
 - **Finding/fix** · Actual hosted access diagnostics showed nginx buffering JPEG request bodies under /var/cache/nginx/client_temp despite the detector itself being memory-only. Disable request buffering for /camera/detect, explicitly use HTTP1.1, and allow the bounded1MiB request in the client body buffer. No new storage, logging or model behavior. A request's temporary file was not a saved recording, but the strict memory-only claim needed this gateway correction.
 - **Verification/rollout** · Final source will include this proxy fix plus52d177e trace continuity and48rem side-by-side layout. First rehearsal already resolved after63.925s evidence at checkpoint/search60/1; no active producer while replacing web. Preserve all Secrets, API writer and badge workloads.
+
+
+## 2026-11-09 — Pin the final demo runtime
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Runtime pin** ·5c154d5f345f2ec0a28283fdf67b5eaa6764e753 includes Vite origin fix, valid trace context continuity,48rem presentation and memory-only JPEG proxy. Source-only web dry run accepted1 resource, Force off; applied after the first incident resolved. Both existing Secret references remain unchanged.
+- **Verified** ·149 frontend/37 Node tests, TypeScript/production build, production Docker image and nginx -t with the real mounted vision include pass. Gitar and both CI checks green at5c154d5. Final deployed readiness/second lifecycle proof follows. No API or badge deployment changed.

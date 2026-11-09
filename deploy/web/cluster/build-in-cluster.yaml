@@ -25,7 +25,7 @@ spec:
             - name: CODE_REPO
               value: lukeeskinner/Backstage
             - name: CODE_SHA
-              value: f05eb2dbb740ce8f36c0c4fb527eabf9dc8d9de6
+              value: 5c154d5f345f2ec0a28283fdf67b5eaa6764e753
             - name: npm_config_cache
               value: /work/npm-cache
             - name: VITE_API_BASE_URL
