@@ -46,6 +46,15 @@ export const TOUR: TourStep[] = [
     holdMs: 9000,
   },
   {
+    id: "floor",
+    title: "The whole venue at a glance",
+    body: "Every hall, session room and the Hyatt overflow ballroom on one map. The bars show how full each area is, and the dots are volunteers on shift: green for venue, purple for AV, blue for IT. Right now everything is calm.",
+    route: "board",
+    identity: "organizer",
+    target: ".floor",
+    holdMs: 10000,
+  },
+  {
     id: "video",
     title: "Cameras watch the floor",
     body: "This is conference footage running through a YOLO person detector. The boxes are real model output, recorded at four samples a second and synced to playback.",
@@ -148,6 +157,15 @@ export const TOUR: TourStep[] = [
     target: ".detail > .ivis",
     ready: textIn(".detail__head .chip", "Dispatched"),
     holdMs: 7000,
+  },
+  {
+    id: "floor-dispatch",
+    title: "Volunteers move on the map",
+    body: "Room 255 BC is lit up on the venue map and over capacity. The dispatched venue volunteer walks over from Room 255 A, and AV volunteers head to the stage mic. Every other area stays normal.",
+    route: "board",
+    identity: "organizer",
+    target: ".floor",
+    holdMs: 9000,
   },
   {
     id: "inbox",
@@ -269,3 +287,6 @@ export const TOUR: TourStep[] = [
     holdMs: 8000,
   },
 ];
+
+/** Narration text per step, read by the in-app voice and by the recorder's voiceover. */
+export const NARRATION = TOUR.map((step) => ({ id: step.id, text: step.body }));

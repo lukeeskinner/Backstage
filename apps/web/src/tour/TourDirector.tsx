@@ -6,6 +6,30 @@ import "./tour.css";
 const TICK_MS = 100;
 const CLICK_AFTER_MS = 1800;
 const MAX_WAIT_MS = 20000;
+const SPEAK_AFTER_MS = 400;
+
+declare global {
+  interface Window {
+    /** Set by the recorder: minimum hold per step id so the recorded voiceover fits. */
+    __TOUR_HOLDS?: Record<string, number>;
+  }
+}
+
+function speech(): SpeechSynthesis | null {
+  return typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null;
+}
+
+function speak(text: string) {
+  const synth = speech();
+  if (!synth) return;
+  synth.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voice = synth.getVoices().find((candidate) => candidate.lang === "en-US" && /Samantha|Google US English|Ava|Zoe/.test(candidate.name))
+    ?? synth.getVoices().find((candidate) => candidate.lang.startsWith("en"));
+  if (voice) utterance.voice = voice;
+  utterance.rate = 1.02;
+  synth.speak(utterance);
+}
 
 interface TourDirectorProps {
   steps: TourStep[];
@@ -14,6 +38,8 @@ interface TourDirectorProps {
   onIdentity(id: string): void;
   onExit(): void;
   onRestart(): void;
+  /** Read each step aloud with the browser's speech engine. */
+  voiceDefault?: boolean;
 }
 
 function setNativeValue(input: HTMLInputElement, value: string) {
@@ -22,9 +48,12 @@ function setNativeValue(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, onRestart }: TourDirectorProps) {
+export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, onRestart, voiceDefault = false }: TourDirectorProps) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [voice, setVoice] = useState(voiceDefault && Boolean(speech()));
+  const voiceRef = useRef(voice);
+  voiceRef.current = voice;
   const [progress, setProgress] = useState(0);
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
@@ -51,11 +80,18 @@ export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, o
     let selected = false;
     let typed = 0;
     let submitted = false;
+    let spoken = false;
+    const hold = Math.max(step.holdMs, window.__TOUR_HOLDS?.[step.id] ?? 0);
+    speech()?.cancel();
     setProgress(0);
 
     const timer = setInterval(() => {
       if (pausedRef.current) return;
       since += TICK_MS;
+      if (!spoken && since >= SPEAK_AFTER_MS) {
+        spoken = true;
+        if (voiceRef.current) speak(step.body);
+      }
       if (step.select && !selected) {
         const card = document.querySelector<HTMLButtonElement>(`[data-incident-id="${step.select}"] .card__select`);
         if (card) {
@@ -93,8 +129,9 @@ export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, o
       const ready = !step.ready || step.ready() || since >= MAX_WAIT_MS;
       if (!ready) return;
       held += TICK_MS;
-      setProgress(Math.min(1, held / step.holdMs));
-      if (held >= step.holdMs) {
+      setProgress(Math.min(1, held / hold));
+      const talking = voiceRef.current && Boolean(speech()?.speaking);
+      if (held >= hold && !talking) {
         clearInterval(timer);
         setIndex((value) => value + 1);
       }
@@ -106,7 +143,15 @@ export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, o
     };
   }, [index]);
 
+  useEffect(() => {
+    const synth = speech();
+    if (!synth) return;
+    if (paused) synth.pause();
+    else synth.resume();
+  }, [paused]);
+
   useEffect(() => () => {
+    speech()?.cancel();
     delete document.documentElement.dataset.tourStep;
     delete document.documentElement.dataset.tourDone;
   }, []);
@@ -131,6 +176,11 @@ export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, o
           <>
             <button type="button" className="tour__button" onClick={() => setPaused(!paused)}>{paused ? "Resume" : "Pause"}</button>
             <button type="button" className="tour__button" onClick={() => setIndex(index + 1)}>Next</button>
+            {speech() ? (
+              <button type="button" className="tour__button" aria-pressed={voice} onClick={() => { if (voice) speech()?.cancel(); setVoice(!voice); }}>
+                {voice ? "Voice on" : "Voice off"}
+              </button>
+            ) : null}
           </>
         )}
         <button type="button" className="tour__button tour__button--quiet" onClick={onExit}>Exit demo</button>

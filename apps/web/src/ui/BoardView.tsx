@@ -32,6 +32,8 @@ export interface BoardViewProps {
   loadError: UiError | null;
   loading: boolean;
   presence?: PresenceCounts | null;
+  /** Optional whole-venue view shown above the queue. */
+  floor?: ReactNode;
   /**
    * Free-text command from the bottom bar ("Ask BACKSTAGE, or report a problem"). When absent, the bar finds an
    * incident by id, room, type or state and selects it, which needs no backend.
@@ -50,6 +52,7 @@ export function BoardView({
   loadError,
   loading,
   presence,
+  floor,
   onCommand,
   renderEvidence,
 }: BoardViewProps) {
@@ -93,6 +96,8 @@ export function BoardView({
       <h1 id={titleId} className="board__title">
         Incident board
       </h1>
+
+      {floor}
 
 
       {loadError ? (

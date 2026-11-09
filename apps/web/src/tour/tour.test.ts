@@ -4,6 +4,7 @@ import { MockIncidentApi } from "../mock/store";
 import { MOCK_PRINCIPALS } from "../mock/transport";
 import { phaseOf } from "../visuals/IncidentVisual";
 import { TOUR } from "./script";
+import { floorAt } from "../venue/floor";
 
 const organizer = { Authorization: "Bearer mock-organizer" };
 
@@ -69,5 +70,23 @@ describe("incident visual phases", () => {
     expect(phaseOf("accepted")).toBe("responding");
     expect(phaseOf("verifying")).toBe("recovering");
     expect(phaseOf("resolved")).toBe("clear");
+  });
+});
+
+describe("venue floor", () => {
+  it("lights up only the incident's area and walks the assignee there", () => {
+    const api = new MockIncidentApi({ principals: MOCK_PRINCIPALS });
+    const incident = list(api)[0]!;
+    const calm = floorAt([incident], 0);
+    const room = calm.areas.find((view) => view.area.id === "room-255bc")!;
+    expect(room.status).toBe("affected");
+    expect(room.occupancy).toBeGreaterThan(1);
+    expect(calm.areas.filter((view) => view.status !== "normal")).toHaveLength(1);
+
+    const dispatched = { ...incident, state: "dispatched" as const, assignment: { id: "a", assignee_id: "venue-staff-01", domain: "venue" as const } };
+    const walking = floorAt([dispatched], 0).volunteers.find((view) => view.volunteer.id === "venue-staff-01")!;
+    expect(walking.busy).toBe(true);
+    expect(walking.x).toBeGreaterThanOrEqual(room.area.x);
+    expect(walking.x).toBeLessThanOrEqual(room.area.x + room.area.w);
   });
 });

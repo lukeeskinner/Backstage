@@ -19,10 +19,11 @@ import { useInbox } from "./hooks/useInbox";
 import { VideoDemo } from "./demo/VideoDemo";
 import { HistoryView } from "./ui/HistoryView";
 import { InboxView } from "./ui/InboxView";
+import { FloorMap } from "./visuals/FloorMap";
 import type { Identity } from "./ui/types";
 import { AppShell, BoardView, DevPanel, JoinPage, StatusView } from "./ui";
 import { TourDirector } from "./tour/TourDirector";
-import { TOUR, type TourContext } from "./tour/script";
+import { NARRATION, TOUR, type TourContext } from "./tour/script";
 
 const MOCK_MODE = import.meta.env.VITE_MOCK_API !== "false";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
@@ -30,6 +31,7 @@ const BOARD_POLL_MS = 2000;
 const STATUS_POLL_MS = 3000;
 const MOCK_LATENCY_MS = 120;
 const TOUR_ON_LOAD = new URLSearchParams(window.location.search).has("tour");
+(window as Window & { __TOUR_NARRATION?: typeof NARRATION }).__TOUR_NARRATION = NARRATION;
 
 interface BoardRouteProps {
   client: ApiClient;
@@ -57,6 +59,7 @@ function BoardRoute({ client, mockMode, announce, registerProbe, presence }: Boa
   return (
     <BoardView
       presence={presence}
+      floor={mockMode ? <FloorMap incidents={board.incidents} /> : undefined}
       renderEvidence={(incident) => <IncidentEvidence key={incident.id} incident={incident} client={client} mockMode={mockMode} />}
       incidents={board.incidents}
       eventsById={board.eventsById}
@@ -92,7 +95,7 @@ export default function App() {
   const probe = useRef<(() => void) | null>(null);
   const [touring, setTouring] = useState(TOUR_ON_LOAD);
   const [tourApi] = useState(
-    () => new MockIncidentApi({ principals: MOCK_PRINCIPALS, startHidden: true, dispatchDelayMs: 2500, tickMs: 2000, backgroundStepMs: 6000 }),
+    () => new MockIncidentApi({ principals: MOCK_PRINCIPALS, startHidden: true, dispatchDelayMs: 2500, tickMs: 2000, backgroundStepMs: 9000 }),
   );
   const [tourPresence] = useState(() => new PresenceSimulator());
   const activeMock = touring ? tourApi : mockApi;
@@ -212,6 +215,7 @@ export default function App() {
         onIdentity={setIdentityId}
         onExit={exitTour}
         onRestart={resetTour}
+        voiceDefault={!TOUR_ON_LOAD}
       />
     ) : null}
     </>
