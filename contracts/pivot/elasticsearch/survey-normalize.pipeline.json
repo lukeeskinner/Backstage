@@ -1,0 +1,47 @@
+{
+  "description": "Optional. Normalize survey enums and build the retrieval profile for writers other than the API.",
+  "processors": [
+    {
+      "trim": {
+        "field": "answers.goal",
+        "ignore_missing": true
+      }
+    },
+    {
+      "lowercase": {
+        "field": "answers.role",
+        "ignore_missing": true
+      }
+    },
+    {
+      "lowercase": {
+        "field": "answers.level",
+        "ignore_missing": true
+      }
+    },
+    {
+      "lowercase": {
+        "field": "answers.vibe",
+        "ignore_missing": true
+      }
+    },
+    {
+      "lowercase": {
+        "field": "answers.interests",
+        "ignore_missing": true
+      }
+    },
+    {
+      "script": {
+        "lang": "painless",
+        "source": "def a = ctx.answers; def parts = new ArrayList(); if (a != null) { if (a.interests != null) { for (def i : a.interests) { parts.add(i); } } if (a.level != null) { parts.add(a.level); } if (a.goal != null && a.goal.length() > 0) { parts.add(a.goal.toLowerCase()); } } ctx.profile_text = String.join(' ', parts);"
+      }
+    },
+    {
+      "set": {
+        "field": "ingested_at",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    }
+  ]
+}
