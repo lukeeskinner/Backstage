@@ -130,3 +130,11 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
   - HTTPS for the stage mic is still open.
   - In-cluster diagnosis is still `mock`, and the badge queue is in memory.
 - **Reviewed** · main at babe5d2: Kunj's "Kubernetes web runtime and server-only OpenAI Secret" (9cc5883), the Unslop UI and History entries, Luke's log through ab2798a, `deploy/web` and `deploy/dash0` on main.
+
+## 2026-11-09 — Public LoadBalancer for web is blocked by the event quota
+
+- **Branch or PR** · `ali/deploy-web`. Cluster change only, already reverted.
+- **Finding** · `team-backstage` is a vcluster on the event's host cluster (`vcluster` owns `Service.spec.type`). Switching `Service/web` to `type: LoadBalancer` was accepted inside the vcluster, but the host rejected the sync: "exceeded quota: team-quota … limited: services.loadbalancers=0, services.nodeports=0". Team namespaces can't create load balancers or NodePorts.
+- **Action** · Reverted `Service/web` to `ClusterIP` the same minute. The overlay keeps `ClusterIP`.
+- **Impact by lane** · **Kunj, Luke:** phones and judges can't reach the board through a public address from this cluster. Options: a kubeconfig plus `kubectl port-forward svc/web 8080:80` on the demo laptop, which also gives the stage mic a secure `localhost` context; asking the organizers whether they provide an ingress or tunnel for teams; or running the board locally against a port-forwarded API.
+- **Open** · A kubeconfig or an organizer-provided ingress path for `team-backstage`.
