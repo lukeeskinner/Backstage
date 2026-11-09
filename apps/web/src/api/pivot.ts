@@ -275,10 +275,10 @@ export interface TrailSearchResponse {
 export interface TrailRunResponse {
   run_id: string;
   attendee_id: string;
-  survey: Omit<SurveyAnswers, "goal"> & {
+  survey: (Omit<SurveyAnswers, "goal"> & {
     source: SurveySource;
     created_at: string;
-  };
+  }) | null;
   site: Pick<
     SiteState,
     | "status"
@@ -287,7 +287,7 @@ export interface TrailRunResponse {
     | "commit_sha"
     | "commit_url"
     | "html_sha256"
-  >;
+  > | null;
   trace_id: string | null;
   trace_url: string | null;
   events: TrailItem[];
