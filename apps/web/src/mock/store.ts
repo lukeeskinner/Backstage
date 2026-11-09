@@ -51,6 +51,18 @@ export interface MockOptions {
   dispatchDelayMs?: number;
   /** Real milliseconds between clearing-replay samples. */
   tickMs?: number;
+  /** Guided demo: the overflow incident stays off the board until raise() is called. */
+  startHidden?: boolean;
+  /** Real milliseconds between the automatic steps of a background incident. */
+  backgroundStepMs?: number;
+}
+
+/** Incident types the guided demo can raise beside the overflow incident. They progress without user actions. */
+export type BackgroundScenario = "stage_av" | "badge_stall";
+
+interface IncidentRecord {
+  incident: Incident;
+  events: ProtocolEvent[];
 }
 
 const SCENARIO = "overflow";
@@ -59,10 +71,10 @@ const VERIFY_WINDOW_MS = 60_000;
 
 const fixtures = examples as unknown as FixtureExample[];
 
-function fixture(method: string, path: string, status = 200): FixtureExample {
+function fixture(method: string, path: string, status = 200, scenario = SCENARIO): FixtureExample {
   const found = fixtures.find(
     (example) =>
-      example.scenario === SCENARIO && example.method === method && example.path === path && example.status === status,
+      example.scenario === scenario && example.method === method && example.path === path && example.status === status,
   );
   if (!found) {
     throw new Error(`Missing shared fixture ${method} ${path} ${status}`);
@@ -110,6 +122,8 @@ export class MockIncidentApi {
   private observed: Signal[] = [];
   private timers = new Set<ReturnType<typeof setTimeout>>();
   private dropNext = false;
+  private hidden = false;
+  private background = new Map<string, IncidentRecord>();
   private readonly clearingSignals: Signal[];
 
   constructor(options: MockOptions) {
@@ -117,6 +131,8 @@ export class MockIncidentApi {
       now: () => new Date(),
       dispatchDelayMs: 1200,
       tickMs: 1500,
+      startHidden: false,
+      backgroundStepMs: 2500,
       ...options,
     };
     this.clearingSignals = overflowSignalsRaw
@@ -133,7 +149,48 @@ export class MockIncidentApi {
     this.idempotency.clear();
     this.observed = [];
     this.dropNext = false;
+    this.background.clear();
     this.seed();
+  }
+
+  /** Guided demo: the venue agent's signal crosses the threshold and the incident appears. */
+  raise(): void {
+    this.hidden = false;
+    this.incident.updated_at = this.timestamp();
+  }
+
+  /**
+   * Guided demo: raise a second incident that other operators handle. It walks approve, dispatch, accept,
+   * verify and close on a timer so the board shows several incident types moving at once.
+   */
+  raiseBackground(scenario: BackgroundScenario): void {
+    const id = `inc-${scenario}-room-${scenario === "stage_av" ? "b" : "c"}`;
+    if (this.background.has(id)) return;
+    const incident = clone(fixture("GET", `/api/v1/incidents/${id}`, 200, scenario).response as Incident);
+    const events = clone((fixture("GET", `/api/v1/incidents/${id}/events`, 200, scenario).response as EventsPage).items);
+    incident.updated_at = this.timestamp();
+    const record: IncidentRecord = { incident, events };
+    this.background.set(id, record);
+    const accepted = (fixtures.filter(
+      (example) => example.scenario === scenario && example.method === "POST" && example.status === 200,
+    ).map((example) => example.response as Incident).find((item) => item.assignment)?.assignment) ?? null;
+    const domain = scenario === "stage_av" ? "av" : "it";
+    const step = this.options.backgroundStepMs;
+    const human = (who: string, tier: 2 | 3) => ({ id: who, kind: "human" as const, tier });
+    this.schedule(step, () => this.transition("approve", "approved", human("organizer-02", 3), { plan_id: incident.plan?.id }, record));
+    this.schedule(step * 2, () => {
+      record.incident.assignment = accepted ? clone(accepted) : { id: `assignment-${scenario}-1`, assignee_id: `${domain}-staff-01`, domain };
+      this.transition("dispatch", "dispatched", { id: `${domain}-worker`, kind: "agent", tier: 2 }, { assignment_id: record.incident.assignment.id }, record);
+    });
+    this.schedule(step * 3, () => this.transition("ack", "accepted", human(record.incident.assignment?.assignee_id ?? `${domain}-staff-01`, 2), { decision: "accepted" }, record));
+    this.schedule(step * 4, () => {
+      record.incident.verification = { status: "pending", summary: scenario === "stage_av" ? "Microphone input is back. Watching for dropouts." : "Station B printed the rerouted badges. Watching the queue." };
+      this.transition("verify", "verifying", { id: "incident-api", kind: "system", tier: null }, {}, record);
+    });
+    this.schedule(step * 6, () => {
+      record.incident.verification = { status: "passed", summary: scenario === "stage_av" ? "Audio stayed up for the full window." : "The badge queue drained and stayed clear." };
+      this.transition("close", "resolved", { id: "incident-api", kind: "system", tier: null }, {}, record);
+    });
   }
 
   /** Rehearsal control: another operator changed the incident, so the next approve or ack is stale. */
@@ -161,11 +218,19 @@ export class MockIncidentApi {
       return errorResponse(403, "forbidden", "Incident access requires staff or organizer scope.");
     }
     if (request.method === "GET" && path === "/incidents") {
-      const page: IncidentsPage = { items: [this.view(principal)], next_cursor: null };
+      const items = [...(this.hidden ? [] : [this.view(principal)]), ...[...this.background.values()].map((record) => this.backgroundView(record))];
+      const page: IncidentsPage = { items, next_cursor: null };
       return { status: 200, json: page };
     }
     const match = /^\/incidents\/([^/]+)(\/events|\/actions)?$/.exec(path);
-    if (!match || decodeURIComponent(match[1] ?? "") !== INCIDENT_ID) {
+    const requestedId = decodeURIComponent(match?.[1] ?? "");
+    const other = this.background.get(requestedId);
+    if (match && other) {
+      if (request.method === "GET" && !match[2]) return { status: 200, json: this.backgroundView(other) };
+      if (request.method === "GET" && match[2] === "/events") return { status: 200, json: { items: clone(other.events), next_cursor: null } };
+      return errorResponse(403, "forbidden", "Another operator is handling this incident in the simulation.");
+    }
+    if (!match || requestedId !== INCIDENT_ID || this.hidden) {
       return errorResponse(404, "not_found", "Incident not found.");
     }
     const suffix = match[2];
@@ -188,6 +253,7 @@ export class MockIncidentApi {
   }
 
   private seed(): void {
+    this.hidden = this.options.startHidden;
     this.incident = clone(fixture("GET", `/api/v1/incidents/${INCIDENT_ID}`).response as Incident);
     this.events = clone((fixture("GET", `/api/v1/incidents/${INCIDENT_ID}/events`).response as EventsPage).items);
   }
@@ -218,11 +284,22 @@ export class MockIncidentApi {
     return view;
   }
 
+  private backgroundView(record: IncidentRecord): Incident {
+    return { ...clone(record.incident), allowed_actions: [] };
+  }
+
   private publicStatus(): PublicStatus {
     const status = clone(fixture("GET", "/api/v1/status").response as PublicStatus);
-    const state = this.incident.state;
-    const roomStatus = state === "resolved" ? "normal" : state === "verifying" ? "recovering" : "affected";
-    status.rooms = status.rooms.map((room) => (room.room_id === this.incident.room_id ? { ...room, status: roomStatus } : room));
+    const live = [...(this.hidden ? [] : [this.incident]), ...[...this.background.values()].map((record) => record.incident)];
+    const rank = { affected: 2, recovering: 1, normal: 0 } as const;
+    const roomStatus = (state: IncidentState) => (state === "resolved" ? "normal" : state === "verifying" ? "recovering" : "affected");
+    const badgeRoom = (fixture("GET", "/api/v1/status", 200, "badge_stall").response as PublicStatus).rooms;
+    for (const room of badgeRoom) if (!status.rooms.some((known) => known.room_id === room.room_id)) status.rooms.push({ ...room });
+    status.rooms = status.rooms.map((room) => {
+      const worst = live.filter((incident) => incident.room_id === room.room_id).map((incident) => roomStatus(incident.state))
+        .sort((a, b) => rank[b] - rank[a])[0];
+      return { ...room, status: worst ?? "normal" };
+    });
     return status;
   }
 
@@ -358,24 +435,31 @@ export class MockIncidentApi {
     return Date.parse(last.occurred_at) - Date.parse(first.occurred_at);
   }
 
-  private transition(type: EventType, to: IncidentState, actor: ProtocolEvent["actor"], payload: Record<string, unknown>): void {
-    const from = this.incident.state;
+  private transition(
+    type: EventType,
+    to: IncidentState,
+    actor: ProtocolEvent["actor"],
+    payload: Record<string, unknown>,
+    record: IncidentRecord = { incident: this.incident, events: this.events },
+  ): void {
+    const { incident, events } = record;
+    const from = incident.state;
     const at = this.timestamp();
-    this.incident.state = to;
-    this.incident.version += 1;
-    this.incident.updated_at = at;
-    this.events.push({
+    incident.state = to;
+    incident.version += 1;
+    incident.updated_at = at;
+    events.push({
       schema_version: 1,
-      event_id: `${this.incident.id}-${this.events.length + 1}`,
-      incident_id: this.incident.id,
-      sequence: this.events.length + 1,
+      event_id: `${incident.id}-${events.length + 1}`,
+      incident_id: incident.id,
+      sequence: events.length + 1,
       type,
       occurred_at: at,
       actor,
       state_from: from,
       state_to: to,
       payload,
-      trace_id: this.incident.trace_id,
+      trace_id: incident.trace_id,
     });
   }
 

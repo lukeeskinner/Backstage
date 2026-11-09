@@ -1,0 +1,166 @@
+.floor {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--panel);
+}
+
+.floor__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.floor__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.floor__summary,
+.floor__note {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.floor__legend {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8125rem;
+}
+
+.floor__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.floor__legend span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+[data-swatch="venue"] { background: var(--mint); }
+[data-swatch="av"] { background: var(--violet); }
+[data-swatch="it"] { background: var(--blue); }
+
+.floor__map {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.floor__level {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.floor__room {
+  fill: var(--bg);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  transition: fill 0.6s ease, stroke 0.6s ease;
+}
+
+.floor__area[data-kind="overflow"] .floor__room { stroke-dasharray: 6 5; }
+
+.floor__area[data-status="affected"] .floor__room {
+  fill: color-mix(in srgb, var(--orange) 10%, var(--panel));
+  stroke: var(--orange);
+  stroke-width: 2.5;
+  animation: floor-alarm 1.4s ease-in-out infinite;
+}
+
+.floor__area[data-status="recovering"] .floor__room {
+  fill: color-mix(in srgb, var(--mint) 12%, var(--panel));
+  stroke: var(--mint);
+  stroke-width: 2;
+}
+
+.floor__name {
+  fill: var(--text);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.floor__occ {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.floor__track { fill: var(--track); }
+
+.floor__fill {
+  fill: var(--ink);
+  transition: width 0.9s ease;
+}
+
+.floor__fill[data-over="true"] { fill: var(--orange); }
+.floor__area[data-status="recovering"] .floor__fill { fill: var(--mint); }
+
+.floor__alert circle {
+  fill: var(--orange);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: floor-ping 1.2s ease-in-out infinite;
+}
+
+.floor__alert[data-phase="responding"] circle { fill: var(--blue); }
+.floor__alert[data-phase="recovering"] circle { fill: var(--mint); animation: none; }
+.floor__alert[data-phase="clear"] { display: none; }
+
+.floor__alert path {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: scale(0.75);
+}
+
+.floor__person {
+  transition: transform 2.8s cubic-bezier(0.45, 0, 0.25, 1);
+}
+
+.floor__person circle {
+  stroke: var(--panel);
+  stroke-width: 2.5;
+}
+
+.floor__person[data-domain="venue"] circle { fill: var(--mint); }
+.floor__person[data-domain="av"] circle { fill: var(--violet); }
+.floor__person[data-domain="it"] circle { fill: var(--blue); }
+
+.floor__person[data-busy="true"] circle {
+  stroke: var(--ink);
+  animation: floor-ping 1s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes floor-alarm {
+  0%, 100% { stroke-width: 2.5; }
+  50% { stroke-width: 5; }
+}
+
+@keyframes floor-ping {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floor *,
+  .floor__person {
+    animation: none !important;
+    transition: none !important;
+  }
+}
