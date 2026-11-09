@@ -100,6 +100,7 @@ function EvidenceScope({ incident, client, mockMode }: Props) {
         key={inspected.id}
         incident={inspected}
         client={client}
+        mockMode={mockMode}
         selectedEventId={eventId}
         focusRequest={focusRequest}
       />
@@ -173,11 +174,13 @@ function Inspector({
   client,
   selectedEventId,
   focusRequest,
+  mockMode,
 }: {
   incident: Incident;
   client: ApiClient;
   selectedEventId: string | null;
   focusRequest: number;
+  mockMode: boolean;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -265,7 +268,11 @@ function Inspector({
         <code>{incident.id}</code> · board version {incident.version} ·{" "}
         {incident.state}
       </p>
-      {diagnosticError ? (
+      {diagnosticError && mockMode ? (
+        <p className="evidence__muted">
+          Storage and verification diagnostics come from the live API. The committed event sequence is below.
+        </p>
+      ) : diagnosticError ? (
         <div role="alert">
           <p>Diagnostics unavailable. {diagnosticError}</p>
           <button

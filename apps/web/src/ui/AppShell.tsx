@@ -28,6 +28,8 @@ export interface AppShellProps {
   announcement: string;
   children: ReactNode;
   devPanel?: ReactNode;
+  touring?: boolean;
+  onStartTour?: () => void;
 }
 
 export function AppShell({
@@ -42,6 +44,8 @@ export function AppShell({
   announcement,
   children,
   devPanel,
+  touring = false,
+  onStartTour,
 }: AppShellProps) {
   const [draftToken, setDraftToken] = useState(token);
   useEffect(() => setDraftToken(token), [token, activeIdentityId]);
@@ -86,6 +90,11 @@ export function AppShell({
               </ul>
             </nav>
             <div className="shell__identity">
+              {onStartTour && !touring ? (
+                <button type="button" className="btn btn--primary tour-start" onClick={onStartTour}>
+                  Start demo
+                </button>
+              ) : null}
               <div
                 role="group"
                 aria-labelledby={identityId}

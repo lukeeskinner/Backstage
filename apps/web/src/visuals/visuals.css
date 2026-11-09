@@ -1,0 +1,284 @@
+.ivis {
+  --tone: var(--orange);
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+}
+
+.ivis[data-phase="responding"] { --tone: var(--blue); }
+.ivis[data-phase="recovering"] { --tone: var(--mint); }
+.ivis[data-phase="clear"] { --tone: var(--ink); }
+
+.ivis--sm {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.ivis__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  overflow: visible;
+}
+
+.ivis--sm .ivis__svg { max-height: 64px; }
+
+.ivis__caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.ivis--sm .ivis__caption { font-size: 0.75rem; }
+
+.ivis__pulse {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+  animation: ivis-pulse 1.4s ease-out infinite;
+}
+
+.ivis[data-phase="clear"] .ivis__pulse { animation: none; }
+
+/* Overflow: the room fills, people spill out of the door, staff walk over, the queue clears. */
+
+.ivis__room {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.ivis[data-type="overflow"][data-phase="alert"] .ivis__room {
+  stroke: var(--orange);
+  animation: ivis-strain 1.2s ease-in-out infinite;
+}
+
+.ivis__door { fill: var(--tone); }
+
+.ivis__seat {
+  fill: none;
+  stroke: var(--track);
+  stroke-width: 2;
+}
+
+.ivis__seat--taken {
+  fill: var(--ink);
+  stroke: none;
+}
+
+.ivis__spill circle {
+  fill: var(--orange);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ivis-jostle 0.9s ease-in-out infinite alternate;
+}
+
+.ivis[data-phase="responding"] .ivis__spill circle { animation-duration: 1.6s; }
+
+.ivis[data-phase="recovering"] .ivis__spill circle {
+  fill: var(--mint);
+  animation: ivis-leave 2.4s ease-in forwards;
+}
+
+.ivis[data-phase="clear"] .ivis__spill { display: none; }
+
+.ivis__staff {
+  fill: var(--blue);
+  stroke: var(--panel);
+  stroke-width: 2;
+  opacity: 0;
+}
+
+.ivis[data-phase="responding"] .ivis__staff {
+  opacity: 1;
+  animation: ivis-walk 2.6s ease-in-out infinite;
+}
+
+/* Microphone: input drops to a flat line with a slash, then the levels come back. */
+
+.ivis__mic rect,
+.ivis__mic path,
+.ivis__mic line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.ivis__slash {
+  stroke: var(--orange);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.ivis[data-type="stage_av"]:is([data-phase="alert"], [data-phase="responding"]) .ivis__slash { opacity: 1; }
+
+.ivis[data-type="stage_av"][data-phase="alert"] .ivis__mic { animation: ivis-flicker 1.8s steps(1) infinite; }
+
+.ivis__bars rect {
+  fill: var(--tone);
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(0.08);
+}
+
+.ivis[data-type="stage_av"][data-phase="recovering"] .ivis__bars rect { animation: ivis-level 0.9s ease-in-out infinite alternate; }
+
+.ivis[data-type="stage_av"][data-phase="clear"] .ivis__bars rect {
+  fill: var(--mint);
+  animation: ivis-level 0.6s ease-in-out infinite alternate;
+}
+
+.ivis__flat {
+  stroke: var(--orange);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+  animation: ivis-dash 1s linear infinite;
+}
+
+.ivis[data-type="stage_av"]:is([data-phase="recovering"], [data-phase="clear"]) .ivis__flat { display: none; }
+
+/* Badge station: a blinking fault light and a growing queue that drains once jobs reroute. */
+
+.ivis__kiosk {
+  fill: var(--soft);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ivis__screen { fill: var(--ink); }
+
+.ivis__light {
+  fill: var(--tone);
+  animation: ivis-blink 0.8s steps(1) infinite;
+}
+
+.ivis[data-phase="clear"] .ivis__light {
+  fill: var(--mint);
+  animation: none;
+}
+
+.ivis__paper {
+  fill: var(--panel);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  opacity: 0;
+}
+
+.ivis[data-type="badge_stall"]:is([data-phase="recovering"], [data-phase="clear"]) .ivis__paper {
+  animation: ivis-print 1.4s ease-in-out infinite;
+}
+
+.ivis__queue circle {
+  fill: var(--tone);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ivis-pop 0.5s ease-out both;
+}
+
+.ivis[data-type="badge_stall"][data-phase="alert"] .ivis__queue circle { fill: var(--orange); }
+
+.ivis[data-type="badge_stall"][data-phase="recovering"] .ivis__queue { animation: ivis-advance 1.2s ease-in-out infinite; }
+
+/* Reported problem */
+
+.ivis__bubble { fill: var(--tone); }
+
+.ivis__ping {
+  fill: none;
+  stroke: var(--tone);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ivis-ripple 2s ease-out infinite;
+}
+
+.ivis__ping--late { animation-delay: 1s; }
+
+@keyframes ivis-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--tone) 55%, transparent); }
+  100% { box-shadow: 0 0 0 8px transparent; }
+}
+
+@keyframes ivis-strain {
+  0%, 100% { stroke-width: 2; }
+  50% { stroke-width: 4; }
+}
+
+@keyframes ivis-jostle {
+  from { transform: translate(0, 0); }
+  to { transform: translate(3px, -3px); }
+}
+
+@keyframes ivis-leave {
+  to { transform: translate(40px, 0); opacity: 0; }
+}
+
+@keyframes ivis-walk {
+  0% { transform: translateX(0); }
+  60%, 100% { transform: translateX(-46px); }
+}
+
+@keyframes ivis-flicker {
+  0%, 100% { opacity: 1; }
+  45% { opacity: 0.35; }
+  55% { opacity: 1; }
+  70% { opacity: 0.5; }
+}
+
+@keyframes ivis-level {
+  from { transform: scaleY(0.2); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes ivis-dash {
+  to { stroke-dashoffset: -12; }
+}
+
+@keyframes ivis-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes ivis-print {
+  0% { opacity: 0; transform: translateY(-6px); }
+  40% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(10px); }
+}
+
+@keyframes ivis-pop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+@keyframes ivis-advance {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-24px); }
+}
+
+@keyframes ivis-ripple {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(3); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ivis *,
+  .ivis__pulse {
+    animation: none !important;
+  }
+
+  .ivis[data-type="stage_av"]:is([data-phase="recovering"], [data-phase="clear"]) .ivis__bars rect {
+    transform: scaleY(0.7);
+  }
+}

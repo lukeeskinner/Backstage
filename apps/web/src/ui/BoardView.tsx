@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 import type { Incident, PresenceCounts, ProtocolEvent } from "../api/types";
 import { deriveAgentActivity } from "../inbox/agentActivity";
 import { PresenceField } from "./PresenceField";
+import { IncidentVisual } from "../visuals/IncidentVisual";
 import {
   PHASES,
   domainLabel,
@@ -31,6 +32,8 @@ export interface BoardViewProps {
   loadError: UiError | null;
   loading: boolean;
   presence?: PresenceCounts | null;
+  /** Optional whole-venue view shown above the queue. */
+  floor?: ReactNode;
   /**
    * Free-text command from the bottom bar ("Ask BACKSTAGE, or report a problem"). When absent, the bar finds an
    * incident by id, room, type or state and selects it, which needs no backend.
@@ -49,6 +52,7 @@ export function BoardView({
   loadError,
   loading,
   presence,
+  floor,
   onCommand,
   renderEvidence,
 }: BoardViewProps) {
@@ -92,6 +96,8 @@ export function BoardView({
       <h1 id={titleId} className="board__title">
         Incident board
       </h1>
+
+      {floor}
 
 
       {loadError ? (
@@ -329,6 +335,7 @@ function IncidentCard({ incident, state, selected, focusIncidentId, jump, onSele
         </p>
       ) : null}
       {incident.state === "escalated" ? <EscalatedFlag /> : null}
+      <IncidentVisual incident={incident} size="sm" />
       <StepBar incident={incident} label={`Progress for ${incident.summary}`} />
       {!selected && state?.error ? (
         <p role="alert" className="notice notice--error">
@@ -392,6 +399,8 @@ function Detail({ incident, events, state, onAction, evidence }: DetailProps) {
         {attention ? <strong>Needs you: </strong> : null}
         {stateHint(incident)}
       </p>
+
+      <IncidentVisual incident={incident} />
 
       <div className="detail__grid">
         <section className="panel" aria-labelledby={planId}>

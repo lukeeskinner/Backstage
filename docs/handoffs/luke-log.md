@@ -123,3 +123,9 @@
 - **Hosted test:** POST https://backstage.cnh.radarhq.io/api/v1/attendee/surveys created att_adyoae6g6oel; polling its public attendee route reached ready with 4,192 HTML bytes, run_apavaed2divh, commit https://github.com/lukeeskinner/Backstage/commit/1eac3d265ce3c45db15014a64683d00e9ba42451 . This run used the hosted API, shared demo Elasticsearch, deployed worker and cluster GitHub Secret. No local worker processed this survey.
 - **Impact:** Ahmed must persist the deployed worker pin and github mode in his runtime manifest so the next apply does not restore the old refresh bug. Kunj can verify the generated page at /#/site/att_adyoae6g6oel once the pivot frontend release is live. Browser survey rendering, physical QR scan, OpenAI generation and provider trace visibility are not claimed by this HTTP test.
 - **Reviewed:** main 9d4f478 with Anurup finished pivot API; existing worker runtime observed directly in Radar. Temporary automatic approval usage-limit failure prevented the initial hosted test attempt; retry succeeded after user continuation.
+
+## 2026-11-09 — Integrate the currently deployed tour with pivot screens
+
+- **Branch:** luke/pivot-release (separate deployment integration branch; PR #38 stays focused on the worker).
+- **Reason:** hosted web uses Kunj's 71741b3 demo-tour, which predates the pivot screens. Deploying main directly would remove those deployed tour features. Merged main 9d4f478 and demo-tour 71741b3, resolving only additive App.tsx import/constants conflicts so both flows remain available.
+- **Validation:** explicit VITE_MOCK_API=false production TypeScript/Vite build passes. Full frontend tests are being checked before rollout. Worker pin remains e3df36f. This integration does not alter owner grants; cross-lane web changes require Kunj review before merging this branch.

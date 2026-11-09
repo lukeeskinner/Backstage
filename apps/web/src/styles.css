@@ -115,6 +115,30 @@ input {
   color: inherit;
 }
 
+:where(button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+:where(button:hover:not(:disabled)) {
+  background: var(--soft);
+}
+
+:where(button:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
@@ -352,12 +376,13 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 20px;
+  min-height: 44px;
+  padding: 0 22px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 999px;
+  font-size: 0.9375rem;
   font-weight: 600;
+  text-decoration: none;
   line-height: 1.2;
   cursor: pointer;
   transition: transform 0.12s ease, opacity 0.15s ease;
@@ -390,12 +415,14 @@ input {
 }
 
 .btn--quiet {
-  min-height: 44px;
   background: transparent;
   border-color: var(--ink);
   color: var(--ink);
-  font-size: 0.875rem;
   font-weight: 500;
+}
+
+.btn--wide {
+  min-height: 48px;
 }
 
 .btn--quiet:hover {
@@ -486,9 +513,9 @@ input {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 6px 6px 20px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 999px;
   background: var(--panel);
   color: var(--text);
 }
@@ -518,8 +545,12 @@ input {
 
 .command__go,
 .command__away {
-  background: var(--soft);
-  color: var(--text);
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .command__go {
@@ -527,9 +558,19 @@ input {
   color: var(--btn-text);
 }
 
+.command__go:hover {
+  opacity: 0.88;
+}
+
 .command__away {
-  background: var(--btn-bg);
-  color: var(--btn-text);
+  background: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.command__away:hover {
+  background: var(--soft);
+  color: var(--text);
 }
 
 .command__go:focus-visible,
@@ -636,7 +677,6 @@ input {
 }
 
 .presence__tier,
-.card__meta,
 .state-word {
   font-family: var(--font-pixel);
   letter-spacing: 0.02em;
@@ -799,7 +839,7 @@ input {
 .detail__head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
@@ -1051,6 +1091,25 @@ input {
 .headline[data-status="affected"] {
   border-color: var(--orange);
   box-shadow: inset 0 0 0 1px var(--orange);
+  animation: room-alarm 1.6s ease-in-out infinite;
+}
+
+.status-card[data-status="recovering"],
+.headline[data-status="recovering"] {
+  border-color: var(--mint);
+  box-shadow: inset 0 0 0 1px var(--mint);
+}
+
+@keyframes room-alarm {
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--orange), 0 0 0 0 rgb(232 117 26 / 0.35); }
+  50% { box-shadow: inset 0 0 0 1px var(--orange), 0 0 0 8px rgb(232 117 26 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-card,
+  .headline {
+    animation: none !important;
+  }
 }
 
 .status-card__name,
