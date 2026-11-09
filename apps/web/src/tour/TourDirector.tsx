@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Route } from "../ui/types";
-import type { TourContext, TourStep } from "./script";
+import { spoken as speechText, type TourContext, type TourStep } from "./script";
 import "./tour.css";
 
 const TICK_MS = 100;
@@ -90,7 +90,7 @@ export function TourDirector({ steps, context, onNavigate, onIdentity, onExit, o
       since += TICK_MS;
       if (!spoken && since >= SPEAK_AFTER_MS) {
         spoken = true;
-        if (voiceRef.current) speak(step.body);
+        if (voiceRef.current) speak(speechText(step.body));
       }
       if (step.select && !selected) {
         const card = document.querySelector<HTMLButtonElement>(`[data-incident-id="${step.select}"] .card__select`);

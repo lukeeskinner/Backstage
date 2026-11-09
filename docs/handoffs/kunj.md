@@ -34,3 +34,12 @@ First PR acceptance is a keyboard-operable overflow flow using the shared fixtur
 - Verified commands and results: `npx tsc --noEmit` clean; `npx vitest run` 24 files, 157 tests passed; `npm test` node suites 37 passed; `node scripts/record-tour.mjs` reached all 26 steps, 4 min 39 s with voiceover.
 - Open issues and next owner or action: merge order #27 → #30 → #32. The recording is not committed (`recordings/` is ignored).
 - References and latest handoffs reviewed: `docs/demo/video-incident-rehearsal.md` and `docs/demo/handoff-log.md` on #30.
+
+## 2026-11-09 — Kokoro voiceover and high-quality demo recording; #32 deployed
+
+- Branch or PR: `kunj/demo-tour` (#32). Cluster `web` Deployment `CODE_SHA` patched from `bee876c` (Codex rehearsal) to `71741b3` through Radar; it contains `bee876c`, and the `web-rehearsal` Secret references were left in place. Roll back by setting `bee876c900507066c73c2a1a7ae3c4ac677f5afb`.
+- Changes and why: `scripts/record-tour.mjs` captures Chrome screencast frames at 2x pixel density and encodes 2560x1440, 30 fps, H.264 CRF 16. The voiceover defaults to Kokoro-82M through `scripts/kokoro_tts.py` (`af_heart`); `TTS=say` and `TTS=none` remain. Narration text uses speech spellings (`spoken()` in `src/tour/script.ts`).
+- Impact by lane, including setup or contract changes: recording needs `pip install "kokoro>=0.9.4" soundfile` and, on macOS, `brew install espeak-ng`, because the bundled espeak-ng looks for data under its CI build path.
+- Verified commands and results: typecheck clean; vitest 24 files, 157 tests passed; live `/healthz` 200 serving the `71741b3` bundle; full recording 5 min 17 s at 2560x1440 with 26 narrated steps.
+- Open issues and next owner or action: Ali's overlay will reset `CODE_SHA` on the next apply; merge #27, #30, #32 so the overlay can pin a merged SHA.
+- References and latest handoffs reviewed: #30 `docs/demo/video-incident-rehearsal.md`.
