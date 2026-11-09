@@ -107,3 +107,10 @@
 - **Verification:** canonical client/test exact-copy check, preservation and doc-link checks, clean diff/merge-marker checks are recorded with this commit. No application suite rerun for this docs-only delta; parent owns fresh integrated runtime/suite verification.
 - **Reviewed references:** AGENTS/CONTRIBUTING, canonical Anurup handoff and source at `2fa5d03`, merged main `13002f6`, pivot contract/examples, canonical API/client/TrailConsole/mappings/pipelines and parent integration updates. No private credential access or cloud writes performed by this author.
 - **Follow-up integration result from parent:** canonical live smoke passed 15/15: survey 201/six recommendations, public goal/traceparent omission, organizer denials 401/403 for four identities, enum 422, template/dry-run ready with 4,209 bytes/ten events, interaction 202, trends/trail/run 200. Evidence in parent workspace `outputs/backstage-pivot/live-smoke.json`; trace `73545864c79ee1193b92906376e669d7`, run `run_7solyafa4t5k`. This happy path does not close the documented failure-case follow-ups. Parent observed teammate-created shared `backstage-demo` aliases and did not reseed/modify them.
+
+## 2026-11-09 23:39 UTC — Confirmed pivot worker timeout blocker
+
+- Branch/PR: anurup/pivot-data-plane, PR36.
+- Luke/Ahmed: shared failed runs have a reproduced cause: a real ledger create stored its event but refresh=wait_for exceeded runtime request_timeout5 (5007ms). Worker then marks the surveyfailed. See contracts/pivot/orchestrator-findings.md for exact run and recovery recommendation. Raise timeout with margin and test reload recovery; keep clusterworker stopped until fixed as Ahmed already did.
+- Verified: isolated live15-check smoke succeeds with timeout10; production timeout5 fails on a stored event. No shared index writes or sourcefixes made by this orchestration pass.
+- Reviewed: main0cb48fd (PR33/34/35), Kunj452a6d5 trailmount followup, Ahmedacc8ea0 clusterfailure handoff, generatedcommit17aa866 onagent/sites.
