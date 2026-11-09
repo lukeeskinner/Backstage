@@ -309,3 +309,10 @@
 - **Branch/PR** · kunj/video-incident-rehearsal, PR30.
 - **Fix** · A newly started run with no incident ID must not fall back to the previous resolved Room B incident. Hide that old card while collecting the new30s trigger. Keep keyboard focus on the stable incident article after an action and stop inviting acceptance after it was already accepted. New regression covers previous-run separation.
 - **Verified** ·150 frontend/37 Node tests, TypeScript and explicitly live-mode production build (VITE_MOCK_API=false, voice and /otel enabled) pass. Prior default local build could prune live-only UI, so the explicit live-mode build is the relevant artifact check. No lifecycle or contract change. Final source pin/second hosted rehearsal follow this UI-only correction.
+
+
+## 2026-11-09 — Final UI runtime pin and deployment record
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30; runtimebee876c900507066c73c2a1a7ae3c4ac677f5afb.
+- **Change** · Persist the published repeat-run/focus fix pin and reconcile cluster-rollout.md with the actual incident rehearsal. Live source-only rollout dry run accepted1/0rejected, Force off; applied with existing server Secret references unchanged. Read visible YAML directly after browser Copy returned empty; live spec was5c154d5 generation11 before this source-only patch.
+- **Verified/open** ·150 UI/37 Node and explicit live-mode build pass. First full hosted run passed all real timers, durable state, role inbox and provider trace proof; final Pod readiness and second full pass follow. No badge/API/collector mutation.
