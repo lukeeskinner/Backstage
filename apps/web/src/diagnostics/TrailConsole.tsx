@@ -155,6 +155,11 @@ function safeUrl(value: string | null | undefined): string | null {
   return value && /^https?:\/\//i.test(value) ? value : null;
 }
 
+function safeCommitUrl(value: string | null | undefined, sha: string | undefined): string | null {
+  const match = value?.match(/^https:\/\/github\.com\/lukeeskinner\/Backstage\/commit\/([a-f0-9]{40}(?:[a-f0-9]{24})?)$/);
+  return match && match[1] === sha ? value! : null;
+}
+
 function formatTime(at: string): string {
   const date = new Date(at);
   return Number.isNaN(date.getTime())
@@ -191,7 +196,7 @@ function TrailEvent({
   const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
   const detailFragments = item.highlight?.detail;
   const rationaleFragments = item.highlight?.["decision.rationale"];
-  const commitUrl = safeUrl(item.commit?.url);
+  const commitUrl = safeCommitUrl(item.commit?.url, item.commit?.sha);
   const traceUrl = safeUrl(item.trace_url);
   const copy = async () => {
     if (!item.trace_id) return;
@@ -515,8 +520,11 @@ export function TrailConsole({ pivot, mockMode = false }: Props) {
             </button>
           </header>
           <p className="trail__muted">
-            Attendee <code>{run.attendee_id}</code> · site {run.site.status}
-            {run.site.builder ? ` · ${run.site.builder}` : ""}
+            Attendee <code>{run.attendee_id}</code> · {run.site ? (
+              <>site {run.site.status}{run.site.builder ? ` · ${run.site.builder}` : ""}</>
+            ) : (
+              <span>Site details unavailable. Timeline remains available.</span>
+            )}
             {runTraceUrl ? (
               <>
                 {" · "}
