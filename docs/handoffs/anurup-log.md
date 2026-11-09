@@ -80,3 +80,11 @@
 - Handoffs: **Luke** owns the coding worker/token and agent/sites writes; **Kunj** owns survey/site/trends routing and should import upcoming api/pivot.ts; **Ahmed** owns cluster rollout and simulator. I will publish a tested API SHA and notify through this log.
 - Integration: one-hour cap runs23:23–00:23UTC; final15min reserved for integrated Playwright/demo. Three-minute script will show measured real vs simulated data and template vs OpenAI modes explicitly.
 - Reviewed: mainbbfc6a8; agent/sitesbbfc6a8; Ahmed ali/pivot-runtime handoff and simulator/manifest (placeholder LUKE_AGENT_SHA, no deployment yet); open Kunj PR30/32. Current cluster handoff says API f536b75 and existing secret keys; agent-github absent at Ahmed's checkpoint.
+
+## 2026-11-09 — Pivot typed client milestone
+
+- Branch: `anurup/pivot-data-plane`, based on reviewed `bbfc6a8`; kickoff update `f72606d` retained.
+- Changes: typed client for all six pivot routes, frozen enums, capability-only public calls, organizer bearer queries, explicit errors and no survey retries. Kunj may import `createPivotClient`, `PivotClient`, and route types from `apps/web/src/api/pivot.ts`.
+- Verification: missing-module red observed; `cd apps/web && npx vitest run src/api/pivot.test.ts` passes 2 tests covering capability credential isolation/query encoding and truthful 429 errors without duplicate POSTs.
+- Next: four mappings, guarded environment-only bootstrap and lexical API are in progress; no cloud mutation or credential access performed by this implementer.
+- Reviewed references: Anurup lane, pivot README/examples v1, AGENTS/CONTRIBUTING, API and existing transport at `bbfc6a8`. Parent integrator reviewed the current main/lane logs and owns cloud probing/publication.
