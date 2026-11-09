@@ -38,7 +38,7 @@ spec:
           command: [python, /bootstrap/agent-bootstrap.py]
           env:
             - name: CODE_SHA
-              value: LUKE_AGENT_SHA
+              value: 13002f607b57c25b21e97905ba22a055db841d78
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
           resources:
@@ -59,11 +59,13 @@ spec:
           command: [python, -m, agent_workers]
           env:
             # Keep equal to prepare-runtime CODE_SHA above when releasing.
-            - {name: CODE_SHA, value: LUKE_AGENT_SHA}
+            - {name: CODE_SHA, value: 13002f607b57c25b21e97905ba22a055db841d78}
             - {name: AGENT_BUILDER, value: template}
             - {name: AGENT_COMMIT_MODE, value: dry-run}
             - {name: AGENT_BRANCH, value: agent/sites}
             - {name: AGENT_SIM_COMMIT_EVERY, value: "10"}
+            - {name: AGENT_MAX_BUILDS_PER_HOUR, value: "300"}
+            - {name: AGENT_OPENAI_MODEL, value: gpt-4.1-mini}
             - {name: GITHUB_REPO, value: lukeeskinner/Backstage}
             # Explicit keys only: the agent never receives incident-secrets' role tokens.
             - name: ELASTICSEARCH_URL
