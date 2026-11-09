@@ -1,0 +1,103 @@
+# Site-builder agent (contracts/pivot, Luke's services/agent-workers). Owner of this manifest: Ahmed.
+# Polls Elasticsearch for queued surveys; no HTTP port, so no Service.
+#
+# Release: set both CODE_SHA values to Luke's agent SHA, apply, and follow the logs for one build.
+# Start with AGENT_BUILDER=template and AGENT_COMMIT_MODE=dry-run; switch to openai and github
+# only when Luke says so (agent-github must exist first).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-workers
+  labels:
+    app.kubernetes.io/name: agent-workers
+    app.kubernetes.io/part-of: backstage
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-workers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agent-workers
+        app.kubernetes.io/part-of: backstage
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-runtime
+          image: public.ecr.aws/docker/library/python:3.13-slim
+          command: [python, /bootstrap/agent-bootstrap.py]
+          env:
+            - name: CODE_SHA
+              value: LUKE_AGENT_SHA
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            # Init limits count against the 10-core team quota: keep at or below 500m.
+            limits: {cpu: 500m, memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
+            - {name: runtime, mountPath: /runtime}
+            - {name: tmp, mountPath: /tmp}
+      containers:
+        - name: agent-workers
+          image: public.ecr.aws/docker/library/python:3.13-slim
+          command: [python, -m, agent_workers]
+          env:
+            # Keep equal to prepare-runtime CODE_SHA above when releasing.
+            - {name: CODE_SHA, value: LUKE_AGENT_SHA}
+            - {name: AGENT_BUILDER, value: template}
+            - {name: AGENT_COMMIT_MODE, value: dry-run}
+            - {name: AGENT_BRANCH, value: agent/sites}
+            - {name: AGENT_SIM_COMMIT_EVERY, value: "10"}
+            - {name: GITHUB_REPO, value: lukeeskinner/Backstage}
+            # Explicit keys only: the agent never receives incident-secrets' role tokens.
+            - name: ELASTICSEARCH_URL
+              valueFrom: {secretKeyRef: {name: incident-secrets, key: ELASTICSEARCH_URL}}
+            - name: ELASTICSEARCH_API_KEY
+              valueFrom: {secretKeyRef: {name: incident-secrets, key: ELASTICSEARCH_API_KEY}}
+            - name: ELASTICSEARCH_INDEX_PREFIX
+              valueFrom: {secretKeyRef: {name: incident-secrets, key: ELASTICSEARCH_INDEX_PREFIX}}
+            - name: OPENAI_API_KEY
+              valueFrom: {secretKeyRef: {name: web-openai, key: OPENAI_API_KEY, optional: true}}
+            - name: GITHUB_TOKEN
+              valueFrom: {secretKeyRef: {name: agent-github, key: GITHUB_TOKEN, optional: true}}
+            - {name: OTEL_ENABLED, value: "true"}
+            - {name: OTEL_SERVICE_NAME, value: agent-workers}
+            - {name: OTEL_EXPORTER_OTLP_ENDPOINT, value: 'http://otel-collector:4318'}
+            - {name: OTEL_EXPORTER_OTLP_PROTOCOL, value: http/protobuf}
+            - {name: OTEL_RESOURCE_ATTRIBUTES, value: 'deployment.environment.name=demo,service.namespace=team-backstage,service.version=$(CODE_SHA)'}
+            - {name: PYTHONPATH, value: '/runtime/python:/runtime/repo/services/agent-workers'}
+            - {name: PYTHONDONTWRITEBYTECODE, value: "1"}
+            - {name: PYTHONUNBUFFERED, value: "1"}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: runtime, mountPath: /runtime, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: bootstrap
+          configMap: {name: agent-bootstrap}
+        - name: runtime
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

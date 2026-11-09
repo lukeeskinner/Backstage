@@ -1,0 +1,90 @@
+# Simulated attendees for the pivot demo, run inside the cluster. Not part of the kustomization.
+# Sends contract-v1 surveys with source "simulator" plus a few taps, so trends and traces are alive.
+#
+#   kubectl -n team-backstage delete job attendee-wave --ignore-not-found
+#   kubectl -n team-backstage apply -f deploy/badge/attendee-wave-job.yaml
+#   kubectl -n team-backstage logs -f job/attendee-wave      # ends with a "summary" line
+#
+# Through Radar: apply_resource with this file, then get_workload_logs kind=job name=attendee-wave.
+# CODE_SHA must be a pushed commit that contains services/badge-simulator/badge_sim/attendees.py.
+# Tune ATTENDEE_COUNT and ATTENDEE_RATE (attendees per second). The run stops on repeated 429s.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: attendee-wave
+  labels:
+    app.kubernetes.io/part-of: backstage
+    app.kubernetes.io/component: attendee-simulator
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  activeDeadlineSeconds: 900
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: attendee-simulator
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: attendees
+          image: public.ecr.aws/docker/library/python:3.13-slim
+          env:
+            - name: CODE_REPO
+              value: lukeeskinner/Backstage
+            - name: CODE_SHA
+              value: PIN_AFTER_PUSH
+            - name: API_BASE_URL
+              value: http://incident-api:8000/api/v1
+            - name: ATTENDEE_COUNT
+              value: "150"
+            - name: ATTENDEE_RATE
+              value: "0.5"
+            - name: ATTENDEE_SEED
+              value: "7"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 96Mi}
+          volumeMounts:
+            - {name: code, mountPath: /code}
+          command:
+            - python
+            - -u
+            - -c
+            - |
+              # Fetch only badge_sim from the pinned commit, then run the simulator.
+              import io, os, re, runpy, sys, tarfile, urllib.request
+              sha = os.environ["CODE_SHA"]
+              if not re.fullmatch(r"[0-9a-f]{40}", sha):
+                  raise SystemExit("CODE_SHA must be a full pushed commit SHA")
+              url = f"https://codeload.github.com/{os.environ['CODE_REPO']}/tar.gz/{sha}"
+              data = urllib.request.urlopen(url, timeout=60).read()
+              prefix = "/services/badge-simulator/badge_sim/"
+              with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+                  for member in archive.getmembers():
+                      if member.isfile() and prefix in member.name and member.name.endswith(".py") and ".." not in member.name:
+                          target = os.path.join("/code/badge_sim", member.name.split(prefix, 1)[1])
+                          os.makedirs(os.path.dirname(target), exist_ok=True)
+                          with open(target, "wb") as out:
+                              out.write(archive.extractfile(member).read())
+              sys.path.insert(0, "/code")
+              sys.argv = ["badge_sim.attendees", "--base-url", os.environ["API_BASE_URL"],
+                          "--count", os.environ["ATTENDEE_COUNT"], "--rate", os.environ["ATTENDEE_RATE"],
+                          "--seed", os.environ["ATTENDEE_SEED"]]
+              print(f"attendee simulator at {sha}", flush=True)
+              runpy.run_module("badge_sim.attendees", run_name="__main__")
+      volumes:
+        - name: code
+          emptyDir: {}

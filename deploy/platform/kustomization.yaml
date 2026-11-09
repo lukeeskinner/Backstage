@@ -1,12 +1,16 @@
 # Aggregate overlay for the team-backstage namespace on cluster "backstage".
 # The namespace already exists (provisioned by the event), so it is not created here.
-# Secrets are created out of band and never committed: badge-secrets (deploy/badge)
-# and incident-secrets (deploy/incident). Both must exist before applying.
-# Still to add once their prerequisites exist (see docs/radar/handoff-log.md):
-#   ../dash0 (needs the dash0-credentials Secret), then ../web (needs otel-collector and incident-api)
+# Secrets are created out of band and never committed: badge-secrets (deploy/badge),
+# incident-secrets (deploy/incident), web-openai and agent-github (Radar Secret editor).
+# Web and the collector are released from deploy/web/cluster and deploy/dash0 by their owner.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: team-backstage
 resources:
   - ../badge
   - ../incident
+  - agent-workers.yaml
+configMapGenerator:
+  - name: agent-bootstrap
+    files:
+      - agent-bootstrap.py
