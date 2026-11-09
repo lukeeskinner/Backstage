@@ -337,3 +337,59 @@
 - **Verified commands and results** · From `apps/web` on Node 22: `npx tsc --noEmit` clean; `npm test` 162 Vitest tests pass (12 new in `src/pivot/pivot.test.tsx`) and 37 Node server tests pass; `npm run build` passes. `nginx -t` on the edited config inside `nginx:1.30.5-alpine` with stub upstream hosts: syntax ok. Headless Chrome screenshots of `#/join`, `#/trends` and `#/projector` in mock mode were inspected. `python3 scripts/check_changed_paths.py --base origin/main --head HEAD --author rathodkunj2005 --branch kunj/attendee-site`: within the kunj lane.
 - **Open issues and next owner or action** · Not verified: any of this against the live API, the tap layer on a real phone, the 429 path through nginx, and the GitHub commit lookup against a real agent commit. Kunj: swap to the typed client and mount `TrailConsole` after PR #34; then one web rollout after telling Ahmed. The trends route needs the organizer token entered before opening `#/projector` for the count to show.
 - **References and latest handoffs reviewed** · main `de8e115`; pivot kickoff and lane guides at `786d07f`; open PR #34 `anurup/pivot-data` at `2fa5d03` (client and trail screen signatures read, not merged here); open PR #33 `luke/site-builder` seen in the list and not read; `ali/pivot-runtime` seen and not read. Agent board inbox for `kunj-claude`: no unread messages.
+
+
+## Recovered PR32 history from the kickoff guide
+
+The three original tour entries below were moved verbatim from docs/handoffs/kunj.md into this owned lane log. Their historical deployment and test claims describe their original checkpoints; the integration entry that follows records the current release.
+
+## 2026-11-09 — Canvas restyle, guided demo mode, live incident scenes and venue map
+
+- Branch or PR: `kunj/canvas-ui` (draft #27) and `kunj/demo-tour` stacked on it.
+- Changes and why:
+  - Restyle `apps/web` to the BACKSTAGE canvas: warm ground, pill role switcher and nav, Plex Mono instead of the pixel font, a zero-specificity pill reset for every `button` so no native grey buttons remain, one 44px button size.
+  - In mock mode the evidence panel shows a quiet note instead of a red "Diagnostics unavailable" alert.
+  - Demo mode (`src/tour/`): "Start demo" in the header or `?tour=1` swaps in a private in-browser `MockIncidentApi` (`startHidden`, `raise()`, `raiseBackground("stage_av" | "badge_stall")`) even on the live build, then walks 25 captioned steps through video detection, the queue, approval, dispatch, inbox accept, verification, evidence, search, history, attendee status, check-in and projector. The browser speaks each caption; the voice can be switched off.
+  - Animated scenes per incident type in `src/visuals/IncidentVisual.tsx`: overflowing room, dead mic, stalled badge queue. Affected rooms pulse on the status page.
+  - Venue map (`src/venue/floor.ts`, `src/visuals/FloorMap.tsx`): 11 named areas, 12 volunteers by domain, simulated occupancy, dispatched volunteers walk to the incident. Shown on the board in mock and demo mode only. Layout is schematic and occupancy is simulated; real capacities are not published.
+  - `npm run record:tour` (Playwright 1.65.0 with system Chrome) records the full run and mixes a macOS `say` voiceover at each step start into `recordings/backstage-demo.mp4`.
+- Impact by lane, including setup or contract changes: none outside `apps/web`; no contract change. Live deploy note: the cluster `web` Deployment `CODE_SHA` was patched to `36c5b99` (#27) through Radar. Ali's overlay will revert it on the next apply; roll back with `690fc6a`.
+- Verified commands and results: `npm run typecheck` clean; `npx vitest run` 23 files, 154 tests passed; `node scripts/record-tour.mjs` produced a 4 min 17 s MP4 with every step reached.
+- Open issues and next owner or action: Kunj to merge #27 then the tour PR and redeploy; better voice needs a Premium macOS voice or a server-side TTS call.
+- References and latest handoffs reviewed: `origin/main` at `690fc6a`; this log had no earlier entries.
+
+## 2026-11-09 — Demo mode now includes the video-to-incident rehearsal
+
+- Branch or PR: `kunj/demo-tour` (#32), now merged with `origin/main` (`#31` pivot lanes) and `origin/kunj/video-incident-rehearsal` (#30, `22a226c`).
+- Changes and why: `IncidentRehearsal` takes an optional `RehearsalDriver`. Without it the panel uses the server `/demo-api` exactly as in #30. In mock and demo mode `src/demo/mockRehearsal.ts` drives it from the in-browser mock, labelled "Demo mode · simulated rehearsal", and the panel shows the live incident scene. The tour gains an `inject` step that presses Inject crowd surge so the incident opens beside the playing video.
+- Impact by lane, including setup or contract changes: none; the live rehearsal path, tokens and nginx routes from #30 are unchanged.
+- Verified commands and results: `npx tsc --noEmit` clean; `npx vitest run` 24 files, 157 tests passed; `npm test` node suites 37 passed; `node scripts/record-tour.mjs` reached all 26 steps, 4 min 39 s with voiceover.
+- Open issues and next owner or action: merge order #27 → #30 → #32. The recording is not committed (`recordings/` is ignored).
+- References and latest handoffs reviewed: `docs/demo/video-incident-rehearsal.md` and `docs/demo/handoff-log.md` on #30.
+
+## 2026-11-09 — Kokoro voiceover and high-quality demo recording; #32 deployed
+
+- Branch or PR: `kunj/demo-tour` (#32). Cluster `web` Deployment `CODE_SHA` patched from `bee876c` (Codex rehearsal) to `71741b3` through Radar; it contains `bee876c`, and the `web-rehearsal` Secret references were left in place. Roll back by setting `bee876c900507066c73c2a1a7ae3c4ac677f5afb`.
+- Changes and why: `scripts/record-tour.mjs` captures Chrome screencast frames at 2x pixel density and encodes 2560x1440, 30 fps, H.264 CRF 16. The voiceover defaults to Kokoro-82M through `scripts/kokoro_tts.py` (`af_heart`); `TTS=say` and `TTS=none` remain. Narration text uses speech spellings (`spoken()` in `src/tour/script.ts`).
+- Impact by lane, including setup or contract changes: recording needs `pip install "kokoro>=0.9.4" soundfile` and, on macOS, `brew install espeak-ng`, because the bundled espeak-ng looks for data under its CI build path.
+- Verified commands and results: typecheck clean; vitest 24 files, 157 tests passed; live `/healthz` 200 serving the `71741b3` bundle; full recording 5 min 17 s at 2560x1440 with 26 narrated steps.
+- Open issues and next owner or action: Ali's overlay will reset `CODE_SHA` on the next apply; merge #27, #30, #32 so the overlay can pin a merged SHA.
+- References and latest handoffs reviewed: #30 `docs/demo/video-incident-rehearsal.md`.
+
+
+## 2026-11-09 — Resolve PR32 integration and both demo review bugs
+
+- **Branch or PR** · PR32, kunj/demo-tour; fixes prepared in an isolated worktree and merged normally with main58450db and recording updatebf7a84a. User explicitly requested fix and merge; no force push or cluster mutation.
+- **Changes and why** · Preserve the attendee survey/site/trends/projector additions and latest canvas/QA changes while retaining guided incident scenes, venue map and Kokoro recorder. Resolve App.tsx imports/routing. Tour mode selects private pivot and presence mocks, including projector commit metadata, so its survey cannot write to live services. Keep historical notes above and restore the shared kickoff guide to its main version so the path check stays in lane.
+- **Review fixes** · Pause/resume keeps the remaining delay for background transitions, dispatch, evidence replay and delayed surge injection, even without speech support. Starting again after resolution reseeds the mock; Reset scenario clears the rehearsal driver and pending injection. The real incident API remains authoritative outside the explicitly simulated tour.
+- **Verified commands and results** · Node22: npm test passes191 frontend and37 Node server tests; live-mode TypeScript/production build passes; production Docker image backstage-web:pr32 builds. Five added regressions exercise real director pause/resume under StrictMode, pending dispatch/evidence, repeated approval/acceptance, scenario reset and live-build tour network isolation across survey/site/trends/projector. Three timer regressions were observed failing before the fix. The production preview renders the merged tour and keeps its stage mic proposed while paused. git diff --check passes; ownership/remote CI follow this push.
+- **Impact and open issues** · Web-only code; no API/worker/Secret changes beyond merging their reviewed upstream commits. Cluster rollout remains with its current owner. The prior recording is preserved; it was not regenerated after these corrections. Physical phone/mic/camera and current hosted route verification remain separate from this code merge.
+- **References and latest handoffs reviewed** · main8a977d6 then58450db/PR40; kunj/demo-tour71741b3 thenbf7a84a; Luke0795c57 and hosted publication handoff; Ahmede086b3c runtime handoff; Anurup pivot-finish and PR40 QA changes. Existing contracts unchanged relative to latest main.
+
+
+## 2026-11-09 — Keep PR32 current with the parallel pivot release
+
+- **Branch/PR** · PR32 / kunj/demo-tour; merge mainfefe263 after PR41/42/43. Main copied the older guided-demo App.tsx while the correction was under review, causing a new import-order conflict; retain the corrected App integration and all new upstream header/settings, worker and submission changes.
+- **History and scope** · Latest main now already contains two historical tour entries in docs/handoffs/kunj.md. Leave that file byte-identical to latest main so this PR does not alter a foreign-owned path. The owned lane log above retains all three original entries, including the newer recording checkpoint. This supersedes the earlier migration note's implication that the final PR removes every kickoff-guide entry.
+- **Verified** · Fresh191 frontend/37 Node tests and explicitly live-mode TypeScript/build pass on the reconciled tree. Prior head70a1212 passed scaffold26s and ownership7s; Gitar approved, closed both findings and reported no open issues. Final-head checks follow this merge-only push. Docker production build passed before the upstream header addition; the final production build has also passed locally.
+- **Impact and references** · No backend/worker code authored by this lane. Latestmainfefe263, worker publication/cadence and submission handoffs reviewed. Runtime rollout remains with its active owner; the user requested fixing and merging PR32.

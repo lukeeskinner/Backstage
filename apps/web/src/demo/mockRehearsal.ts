@@ -7,7 +7,7 @@ const INCIDENT_ID = "inc-overflow-room-b";
 /** Simulated rehearsal: the same run phases as /demo-api, driven by the in-browser mock incident API. */
 export function createMockRehearsal(api: MockIncidentApi, token: string, evidenceMs = 4000): RehearsalDriver & { reset(): void } {
   let run: Run | null = null;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let cancelTimer: (() => void) | undefined;
 
   const incident = (): Incident | null => {
     const response = api.handle({ method: "GET", path: `/incidents/${INCIDENT_ID}`, headers: { Authorization: `Bearer ${token}` } });
@@ -25,14 +25,15 @@ export function createMockRehearsal(api: MockIncidentApi, token: string, evidenc
       const now = new Date().toISOString();
       if (phase === "run") {
         if (run && run.phase !== "completed") return { ...run };
+        if (incident()?.state === "resolved") api.reset();
         run = { id: crypto.randomUUID(), phase: "injecting", started_at: now, recovery_started_at: null, incident_id: null, samples: 1, error: null };
-        timer = setTimeout(() => {
+        cancelTimer = api.schedule(evidenceMs, () => {
           api.raise();
           if (run) {
             run.phase = "awaiting_humans";
             run.incident_id = INCIDENT_ID;
           }
-        }, evidenceMs);
+        });
         return { ...run };
       }
       if (!run) throw new Error("Start a rehearsal first.");
@@ -43,7 +44,8 @@ export function createMockRehearsal(api: MockIncidentApi, token: string, evidenc
       return { ...run };
     },
     reset() {
-      clearTimeout(timer);
+      cancelTimer?.();
+      cancelTimer = undefined;
       run = null;
     },
   };

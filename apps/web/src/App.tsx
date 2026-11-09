@@ -23,6 +23,8 @@ import { HistoryView } from "./ui/HistoryView";
 import { InboxView } from "./ui/InboxView";
 import { FloorMap } from "./visuals/FloorMap";
 import type { Identity } from "./ui/types";
+import { TourDirector } from "./tour/TourDirector";
+import { NARRATION, TOUR, type TourContext } from "./tour/script";
 import { AppShell, BoardView, DevPanel, StatusView } from "./ui";
 import { createPivotApi, recallAttendeeId, type PivotApi } from "./pivot/client";
 import { createPivotMockTransport, MOCK_COMMIT_SUBJECT, PivotMock } from "./pivot/mock";
@@ -30,17 +32,15 @@ import { fetchLatestSiteCommit, ProjectorSites, TrailPending } from "./pivot/Pro
 import { SitePage } from "./pivot/SitePage";
 import { SurveyPage } from "./pivot/SurveyPage";
 import { TrendsPage } from "./pivot/TrendsPage";
-import { TourDirector } from "./tour/TourDirector";
-import { NARRATION, TOUR, type TourContext } from "./tour/script";
 
 const MOCK_MODE = import.meta.env.VITE_MOCK_API !== "false";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 const BOARD_POLL_MS = 2000;
 const STATUS_POLL_MS = 3000;
 const MOCK_LATENCY_MS = 120;
-const loadSiteCommit = MOCK_MODE ? async () => MOCK_COMMIT_SUBJECT : fetchLatestSiteCommit;
 const TOUR_ON_LOAD = new URLSearchParams(window.location.search).has("tour");
 (window as Window & { __TOUR_NARRATION?: typeof NARRATION }).__TOUR_NARRATION = NARRATION;
+const loadMockSiteCommit = async () => MOCK_COMMIT_SUBJECT;
 
 interface BoardRouteProps {
   client: ApiClient;
@@ -82,10 +82,10 @@ function BoardRoute({ client, mockMode, announce, registerProbe, presence }: Boa
   );
 }
 
-function StatusRoute({ client, pivot, variant, presence, joinUrl }: { client: ApiClient; pivot: PivotApi; variant: "attendee" | "projector"; presence: PresenceCounts | null; joinUrl: string }) {
+function StatusRoute({ client, pivot, mockMode, variant, presence, joinUrl }: { client: ApiClient; pivot: PivotApi; mockMode: boolean; variant: "attendee" | "projector"; presence: PresenceCounts | null; joinUrl: string }) {
   const { status, error } = useStatus(client, STATUS_POLL_MS);
   return <StatusView status={status} error={error} variant={variant} presence={presence} joinUrl={variant === "projector" ? joinUrl : undefined}
-    extra={variant === "projector" ? <ProjectorSites api={pivot} loadCommit={loadSiteCommit} /> : undefined} />;
+    extra={variant === "projector" ? <ProjectorSites api={pivot} loadCommit={mockMode ? loadMockSiteCommit : fetchLatestSiteCommit} /> : undefined} />;
 }
 
 function InboxRoute({ client, identity, token, announce }: { token: string; client: ApiClient; identity: Identity; announce: (message: string) => void }) {
@@ -135,6 +135,8 @@ export default function App() {
       raise: () => tourApi.raise(),
       raiseBackground: (scenario) => tourApi.raiseBackground(scenario),
       wave: () => tourPresence.wave(),
+      pause: () => tourApi.pause(),
+      resume: () => tourApi.resume(),
     }),
     [tourApi, tourPresence],
   );
@@ -158,14 +160,15 @@ export default function App() {
   }, [resetTour, navigate]);
   // Opaque generation resets scoped caches, actions and inspector state even for the same role.
   const credentialGeneration = useMemo(() => crypto.randomUUID(), [client]);
-  const [pivotMock] = useState(() => (MOCK_MODE ? new PivotMock() : null));
+  const [pivotMock] = useState(() => new PivotMock());
+  const activePivotMock = mockActive ? pivotMock : null;
   const pivot = useMemo(
     () =>
       createPivotApi({
-        transport: pivotMock ? createPivotMockTransport(pivotMock, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
+        transport: activePivotMock ? createPivotMockTransport(activePivotMock, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
         getToken: () => token,
       }),
-    [pivotMock, token],
+    [activePivotMock, token],
   );
   const siteId = useSiteId();
 
@@ -180,6 +183,7 @@ export default function App() {
       onProbeDeniedApprove={() => probe.current?.()}
       onDropNextResponse={() => mockApi.dropNextResponse()}
       onReset={() => {
+        mockRehearsal?.reset();
         mockApi.reset();
         if (presenceApi instanceof PresenceSimulator) presenceApi.reset();
         setJoinedTier(null);
@@ -190,7 +194,7 @@ export default function App() {
 
   if (route === "join") {
     return <main><SurveyPage api={pivot} existingId={recallAttendeeId()} onBuilt={(attendeeId) => { window.location.hash = `#/site/${attendeeId}`; }} onJoin={async (tier) => {
-      const result = await presenceApi.join(tier);
+      const result = await (touring ? tourPresence : presenceApi).join(tier);
       if (result.ok) setJoinedTier(tier);
       return result;
     }} /></main>;
@@ -240,6 +244,7 @@ export default function App() {
           joinUrl={joinUrl}
           client={client}
           pivot={pivot}
+          mockMode={mockActive}
           variant={route === "projector" ? "projector" : "attendee"}
         />
       )}
