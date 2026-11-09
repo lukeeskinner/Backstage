@@ -8,6 +8,8 @@ export const PRIVACY_NOTE = "Cameras report people counts only. No frames, faces
 const NAV: { route: Route; label: string }[] = [
   { route: "board", label: "Board" },
   { route: "history", label: "History" },
+  { route: "trends", label: "Trends" },
+  { route: "trail", label: "Trail" },
   { route: "demo", label: "Video & vision" },
   { route: "me", label: "Your inbox" },
   { route: "status", label: "Attendee status" },
