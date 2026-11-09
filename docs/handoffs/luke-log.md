@@ -141,3 +141,9 @@
 - **Branch:** luke/pivot-release. Luke explicitly requested hiding the API token field and reducing visible roles to the main three or four.
 - **Changes:** live header shows Organizer, Venue staff, IT staff and Attendee. Speaker and backup identities remain in the collapsed Connection settings selector. The password token form is inside the same collapsed section. Existing token submission, per-role storage and backend authorization are unchanged. Mock mode retains its three available primary roles.
 - **Verified:** live-mode TypeScript/Vite build and 32 UI/token tests pass; updated test fixtures use the actual identity IDs. Previously integrated frontend suite 178 and Node server suite 37 pass. This is an explicit user-authorized web change; no ownership grant was changed.
+
+## 2026-11-09 — Simplified header and attendee page verified live
+
+- **Release:** web CODE_SHA 777584809cbb67a31b6b5e55d3a6da6f529575b4, applied through Radar with Force off after accepted dry run. Build log confirms that exact SHA; vision dependency installation and model checksum completed.
+- **Browser proof:** hosted /#/site/att_adyoae6g6oel renders the generated 6-session page and accessible picks. Hosted /#/board displays exactly four primary role buttons and collapsed Connection settings; API token input is not visible. This fresh browser has no organizer token, so protected incident data correctly returns authorization-required. Public attendee page needs no organizer credential.
+- **Repository:** integration PR #41 remains draft for cross-lane reconciliation; worker cadence follow-up is PR #42 because #38 was merged concurrently at bbaf1eb. Radar already shows worker 0795c57. Concurrent main 58450db includes newer canvas and pivot QA work that this release does not incorporate; do not overwrite this header simplification during reconciliation.
