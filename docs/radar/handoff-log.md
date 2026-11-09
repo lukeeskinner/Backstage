@@ -138,3 +138,15 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Action** · Reverted `Service/web` to `ClusterIP` the same minute. The overlay keeps `ClusterIP`.
 - **Impact by lane** · **Kunj, Luke:** phones and judges can't reach the board through a public address from this cluster. Options: a kubeconfig plus `kubectl port-forward svc/web 8080:80` on the demo laptop, which also gives the stage mic a secure `localhost` context; asking the organizers whether they provide an ingress or tunnel for teams; or running the board locally against a port-forwarded API.
 - **Open** · A kubeconfig or an organizer-provided ingress path for `team-backstage`.
+
+## 2026-11-09 — Board is public at https://backstage.cnh.radarhq.io
+
+- **Branch or PR** · `ali/deploy-web`. These are cluster changes; the record is here.
+- **Public route** · The event already provides one per team. An `HTTPRoute/app` with hostname `backstage.cnh.radarhq.io` sits on the shared gateway `gateway/cnh` (listener `https`). The working copy of that route is on the host cluster and sends traffic to our `Service/app`; editing the vcluster's HTTPRoute had no effect and was reverted. `Service/app` (the organizers' starter, port 80 → `targetPort: http`) now selects `app.kubernetes.io/name: web`, so the gateway serves our board. The starter `app` Deployment still runs but gets no traffic. Scaling it to 0 needs an explicit OK.
+- **Quota fix** · Someone added the YOLO `vision` and `install-vision` containers to `deployment/web` at 22:13 UTC, with CPU limits of 2 each. The pod then needed `limits.cpu=3` with 7.4 of the 10 CPUs in `team-quota` already used, so it couldn't be created. Ali lowered both CPU limits to 1. A follow-up edit by a teammate also set 250m limits on `web` and `web-runtime`. `web` then rolled out 1/1 with all three containers ready, at web code `c43885a`.
+- **Verified** · https://backstage.cnh.radarhq.io serves the Backstage board (Board, History, Video & vision, Inbox, role switcher) over HTTPS, and asks for a token as expected.
+- **Impact by lane** ·
+  - **Kunj:** the live `web` Deployment now has the vision containers and differs from `deploy/web` and `deploy/platform/web-build-in-cluster.yaml`. Commit your version, with the 1-CPU limits, before anyone runs `kubectl apply -k deploy/platform`, or the vision containers will be removed.
+  - **Everyone:** the team quota is 10 CPU in limits. Check headroom before adding containers. `web` uses `Recreate`, so a pod that can't be scheduled takes the site down.
+  - The page is public. API calls still need tokens, and check-in and presence are open by design.
+- **Open** · Persisting the `Service/app` selector (the organizers' object, so it's not in our manifests), the `dash0-credentials` and `web-openai` Secrets, and the starter `app` scale-down decision.
