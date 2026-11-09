@@ -5,6 +5,8 @@ import type { Identity, Route } from "./types";
 
 export const PRIVACY_NOTE = "Cameras report people counts only. No frames, faces or identities are stored.";
 
+const MAIN_ROLES = new Set(["organizer", "venue-staff", "it-staff", "attendee"]);
+
 const NAV: { route: Route; label: string }[] = [
   { route: "board", label: "Board" },
   { route: "history", label: "History" },
@@ -105,7 +107,7 @@ export function AppShell({
                   Viewing as
                 </span>
                 <div className="roles__pills">
-                  {identities.map((identity) => (
+                  {identities.filter((identity) => MAIN_ROLES.has(identity.id)).map((identity) => (
                     <button
                       key={identity.id}
                       type="button"
@@ -119,6 +121,17 @@ export function AppShell({
                   ))}
                 </div>
               </div>
+              <details className="shell__settings">
+                <summary>Connection settings{active && !MAIN_ROLES.has(active.id) ? ` · ${active.label}` : ""}</summary>
+                <div className="shell__settings-content">
+                  {identities.length ? (
+                    <label className="field">
+                      All roles
+                      <select value={activeIdentityId} onChange={(event) => onIdentityChange(event.target.value)}>
+                        {identities.map((identity) => <option key={identity.id} value={identity.id}>{identity.label}</option>)}
+                      </select>
+                    </label>
+                  ) : null}
               {mockMode ? null : (
                 <form className="field" onSubmit={(event) => { event.preventDefault(); onTokenChange(draftToken.trim()); }}>
                   <label htmlFor={tokenId}>API token</label>
@@ -133,6 +146,8 @@ export function AppShell({
                   <button type="submit" className="btn btn--quiet">Use token</button>
                 </form>
               )}
+                </div>
+              </details>
               {active ? (
                 <p className="shell__identity-help" id={identityHelpId}>
                   {active.description}

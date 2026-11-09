@@ -220,17 +220,20 @@ class WorkerTests(unittest.TestCase):
         self.assertTrue(any(event['outcome'] == 'fallback' for event in self.store.ledger.values()))
 
     def test_simulated_builds_always_template_and_only_tenth_commits(self):
-        self.store.survey['source'] = 'simulator'
         publisher = Publisher()
-        self.worker(Settings(builder='openai', commit_mode='github'), publisher=publisher).run_once()
-        self.assertEqual(publisher.calls, [])
-        self.assertEqual(self.builder_calls[0][2], 'template')
-        self.store = Store(source='simulator')
-        for seq in range(9):
-            self.store.ledger[f'prior:{seq}'] = {'source':'simulator','step':'claim','outcome':'ok'}
-        self.worker(Settings(builder='openai', commit_mode='github'), publisher=publisher).run_once()
-        self.assertEqual(len(publisher.calls), 1)
-        self.assertEqual(self.store.survey['site']['commit_mode'], 'github')
+        worker = self.worker(Settings(builder='openai', commit_mode='github'), publisher=publisher)
+        for ordinal in range(1, 21):
+            self.store = Store(source='simulator')
+            self.store.force_count = 0  # Search never sees any prior claim.
+            worker.client = self.store
+            worker.run_once()
+            self.assertEqual(len(publisher.calls), ordinal // 10)
+            self.assertEqual(self.store.survey['site']['status'], 'ready')
+            self.assertEqual(self.builder_calls[-1][2], 'template')
+        restarted = self.worker(Settings(commit_mode='github'), publisher=publisher)
+        self.store.survey['site'] = deepcopy(SURVEY['site'])
+        restarted.run_once()
+        self.assertEqual(len(publisher.calls), 2)
 
     def test_hourly_cap_survives_worker_restart(self):
         self.store.force_count = 300
