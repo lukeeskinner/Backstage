@@ -21,21 +21,25 @@ import { HistoryView } from "./ui/HistoryView";
 import { InboxView } from "./ui/InboxView";
 import type { Identity } from "./ui/types";
 import { AppShell, BoardView, DevPanel, JoinPage, StatusView } from "./ui";
+import { TourDirector } from "./tour/TourDirector";
+import { TOUR, type TourContext } from "./tour/script";
 
 const MOCK_MODE = import.meta.env.VITE_MOCK_API !== "false";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 const BOARD_POLL_MS = 2000;
 const STATUS_POLL_MS = 3000;
 const MOCK_LATENCY_MS = 120;
+const TOUR_ON_LOAD = new URLSearchParams(window.location.search).has("tour");
 
 interface BoardRouteProps {
   client: ApiClient;
+  mockMode: boolean;
   announce: (message: string) => void;
   registerProbe: (probe: (() => void) | null) => void;
   presence: PresenceCounts | null;
 }
 
-function BoardRoute({ client, announce, registerProbe, presence }: BoardRouteProps) {
+function BoardRoute({ client, mockMode, announce, registerProbe, presence }: BoardRouteProps) {
   const board = useBoard({ client, pollMs: BOARD_POLL_MS, announce });
   const actions = useIncidentActions({
     client,
@@ -53,7 +57,7 @@ function BoardRoute({ client, announce, registerProbe, presence }: BoardRoutePro
   return (
     <BoardView
       presence={presence}
-      renderEvidence={(incident) => <IncidentEvidence key={incident.id} incident={incident} client={client} mockMode={MOCK_MODE} />}
+      renderEvidence={(incident) => <IncidentEvidence key={incident.id} incident={incident} client={client} mockMode={mockMode} />}
       incidents={board.incidents}
       eventsById={board.eventsById}
       actionState={actions.actionState}
@@ -86,23 +90,56 @@ export default function App() {
   const [announcement, setAnnouncement] = useState("");
   const [mockApi] = useState(() => (MOCK_MODE ? new MockIncidentApi({ principals: MOCK_PRINCIPALS }) : null));
   const probe = useRef<(() => void) | null>(null);
+  const [touring, setTouring] = useState(TOUR_ON_LOAD);
+  const [tourApi] = useState(
+    () => new MockIncidentApi({ principals: MOCK_PRINCIPALS, startHidden: true, dispatchDelayMs: 2500, tickMs: 2000, backgroundStepMs: 6000 }),
+  );
+  const [tourPresence] = useState(() => new PresenceSimulator());
+  const activeMock = touring ? tourApi : mockApi;
+  const mockActive = MOCK_MODE || touring;
 
-  const identities = MOCK_MODE ? DEMO_IDENTITIES : LIVE_IDENTITIES;
+  const identities = mockActive ? DEMO_IDENTITIES : LIVE_IDENTITIES;
   const identity = identities.find((candidate) => candidate.id === identityId) ?? identities[0];
-  const token = MOCK_MODE ? (identity?.token ?? "") : (liveTokens[identityId] ?? "");
+  const token = mockActive ? (identity?.token ?? "") : (liveTokens[identityId] ?? "");
   const [presenceApi] = useState(() => MOCK_MODE ? new PresenceSimulator() : createHttpPresenceApi());
-  const presence = usePresence(presenceApi, 2000);
+  const presence = usePresence(touring ? tourPresence : presenceApi, 2000);
   const [joinedTier, setJoinedTier] = useState<PresenceTier | null>(null);
   const joinUrl = `${window.location.origin}/#/join`;
 
   const client = useMemo(
     () =>
       createClient({
-        transport: mockApi ? createMockTransport(mockApi, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
+        transport: activeMock ? createMockTransport(activeMock, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
         getToken: () => token,
       }),
-    [mockApi, token],
+    [activeMock, token],
   );
+
+  const tourContext = useMemo<TourContext>(
+    () => ({
+      raise: () => tourApi.raise(),
+      raiseBackground: (scenario) => tourApi.raiseBackground(scenario),
+      wave: () => tourPresence.wave(),
+    }),
+    [tourApi, tourPresence],
+  );
+  const resetTour = useCallback(() => {
+    tourApi.reset();
+    tourPresence.reset();
+  }, [tourApi, tourPresence]);
+  const startTour = useCallback(() => {
+    resetTour();
+    setAnnouncement("");
+    setIdentityId("organizer");
+    setTouring(true);
+  }, [resetTour]);
+  const exitTour = useCallback(() => {
+    setTouring(false);
+    resetTour();
+    setIdentityId("organizer");
+    if (TOUR_ON_LOAD) window.history.replaceState(null, "", `${window.location.pathname}${window.location.hash}`);
+    navigate("board");
+  }, [resetTour, navigate]);
   // Opaque generation resets scoped caches, actions and inspector state even for the same role.
   const credentialGeneration = useMemo(() => crypto.randomUUID(), [client]);
 
@@ -110,7 +147,7 @@ export default function App() {
     probe.current = next;
   }, []);
 
-  const devPanel = mockApi ? (
+  const devPanel = mockApi && !touring ? (
     <DevPanel
       onCheckInWave={() => presenceApi instanceof PresenceSimulator && presenceApi.wave()}
       onBumpVersion={() => mockApi.bumpVersion()}
@@ -134,26 +171,29 @@ export default function App() {
   }
 
   return (
+    <>
     <AppShell
       route={route}
       onNavigate={navigate}
       identities={identities}
       activeIdentityId={identityId}
       onIdentityChange={(id) => { setAnnouncement(""); setIdentityId(id); }}
-      mockMode={MOCK_MODE}
+      mockMode={mockActive}
+      touring={touring}
+      onStartTour={startTour}
       token={token}
       onTokenChange={(next) => { setAnnouncement(""); setLiveToken(identityId, next); }}
       announcement={announcement}
       devPanel={devPanel}
     >
       {route === "demo" ? (
-        <VideoDemo key={`video-${credentialGeneration}`} token={MOCK_MODE ? "" : token} />
+        <VideoDemo key={`video-${credentialGeneration}`} token={mockActive ? "" : token} />
       ) : route === "history" ? (
-        <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={MOCK_MODE} />
+        <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={mockActive} />
       ) : route === "me" && identity && identity.tier > 0 ? (
         <InboxRoute token={token} key={`inbox-${identityId}-${credentialGeneration}`} client={client} identity={identity} announce={setAnnouncement} />
       ) : route === "board" ? (
-        <BoardRoute key={`board-${identityId}-${credentialGeneration}`} presence={presence} client={client} announce={setAnnouncement} registerProbe={registerProbe} />
+        <BoardRoute key={`board-${identityId}-${credentialGeneration}`} mockMode={mockActive} presence={presence} client={client} announce={setAnnouncement} registerProbe={registerProbe} />
       ) : (
         <StatusRoute
           key={`${route}-${identityId}-${credentialGeneration}`}
@@ -164,5 +204,16 @@ export default function App() {
         />
       )}
     </AppShell>
+    {touring ? (
+      <TourDirector
+        steps={TOUR}
+        context={tourContext}
+        onNavigate={navigate}
+        onIdentity={setIdentityId}
+        onExit={exitTour}
+        onRestart={resetTour}
+      />
+    ) : null}
+    </>
   );
 }

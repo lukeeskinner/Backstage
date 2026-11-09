@@ -1091,6 +1091,25 @@ input {
 .headline[data-status="affected"] {
   border-color: var(--orange);
   box-shadow: inset 0 0 0 1px var(--orange);
+  animation: room-alarm 1.6s ease-in-out infinite;
+}
+
+.status-card[data-status="recovering"],
+.headline[data-status="recovering"] {
+  border-color: var(--mint);
+  box-shadow: inset 0 0 0 1px var(--mint);
+}
+
+@keyframes room-alarm {
+  0%, 100% { box-shadow: inset 0 0 0 1px var(--orange), 0 0 0 0 rgb(232 117 26 / 0.35); }
+  50% { box-shadow: inset 0 0 0 1px var(--orange), 0 0 0 8px rgb(232 117 26 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-card,
+  .headline {
+    animation: none !important;
+  }
 }
 
 .status-card__name,

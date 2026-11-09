@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 import type { Incident, PresenceCounts, ProtocolEvent } from "../api/types";
 import { deriveAgentActivity } from "../inbox/agentActivity";
 import { PresenceField } from "./PresenceField";
+import { IncidentVisual } from "../visuals/IncidentVisual";
 import {
   PHASES,
   domainLabel,
@@ -329,6 +330,7 @@ function IncidentCard({ incident, state, selected, focusIncidentId, jump, onSele
         </p>
       ) : null}
       {incident.state === "escalated" ? <EscalatedFlag /> : null}
+      <IncidentVisual incident={incident} size="sm" />
       <StepBar incident={incident} label={`Progress for ${incident.summary}`} />
       {!selected && state?.error ? (
         <p role="alert" className="notice notice--error">
@@ -392,6 +394,8 @@ function Detail({ incident, events, state, onAction, evidence }: DetailProps) {
         {attention ? <strong>Needs you: </strong> : null}
         {stateHint(incident)}
       </p>
+
+      <IncidentVisual incident={incident} />
 
       <div className="detail__grid">
         <section className="panel" aria-labelledby={planId}>

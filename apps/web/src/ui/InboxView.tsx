@@ -7,6 +7,7 @@ import type { InboxItem } from "../inbox/deriveInbox";
 import { inboxStatus, inboxTitle, inboxVerification } from "../inbox/copy";
 import { formatAbsolute, priorityLabel } from "./format";
 import type { ActionState, Identity, UiError } from "./types";
+import { IncidentVisual } from "../visuals/IncidentVisual";
 import "./inbox.css";
 
 interface InboxViewProps {
@@ -53,6 +54,7 @@ export function InboxView({ items, identity, actionState, onAction, focusInciden
                 aria-label={title}>
                 <p className="inbox__kind">{kind === "needs_you" ? "Needs you" : kind === "resolved" ? "Verified recovery" : kind === "update" ? "New update" : "Watching"}</p>
                 <h2>{title}</h2>
+                <IncidentVisual incident={incident} size="sm" />
                 <p>{priorityLabel(incident.priority)}. {inboxStatus(incident)}.</p>
                 {incident.plan ? <p>{incident.plan.summary}</p> : <p>{incident.summary}</p>}
                 <p className="inbox__why">Why you: {why}</p>
