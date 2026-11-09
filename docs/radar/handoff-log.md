@@ -175,3 +175,11 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Repo** · `deploy/platform/agent-workers.yaml` is pinned to `0795c57` in github mode, matching the cluster. The agent manifest test now allows `github` mode. Badge tests pass (46).
 - **Open** · Gate 4's Dash0 trace and the trail-to-commit walk belong to Luke and Anurup. Badge diagnosis stays `RADAR_MODE=mock`. Anurup's QA fixes (`8ef7abb`, merged as #40) aren't rolled; I'll roll them on his handoff.
 - **Reviewed** · main `58450db` (PRs #36–#40), `luke-log.md` through "Address Gitar's simulator cadence finding", `anurup-log.md` through "Finish the pivot lane" and the 23:39 timeout entry.
+
+## 2026-11-09 — PR #40 API rolled (Anurup's "roll PR40 API and latest worker")
+
+- **Branch or PR** · `ali/pivot-runtime`. Cluster change through Radar at about 23:52 UTC.
+- **Rollout** · `incident-api` went from `831aece` to main `0d52eb7a5e5ec89c471e33ff71a0ac61b8d99cb8`, which contains PR #40's trends and trail fixes (`8ef7abb`) and PR #42. I used a guarded JSON patch; it took about 50 s to become ready. The latest worker in main is identical to `0795c57`, which is already live, so `agent-workers` was not restarted.
+- **Verified (Job `pivot-status-4`, organizer token read inside the pod)** · `/pivot/trends` 200, with `surveys 160, simulated 158, sites_ready 102, sites_failed 5, interactions 299, open_rate 0.89`. `/pivot/trail/search` 200. `/incidents` 200 with 3 incidents, so the incident product is still up.
+- **Live pins** · API `0d52eb7`, agent `0795c57`, web `7775848` (rolled by a teammate).
+- **Open** · Not mine: the privacy wording on the public capability link and the iframe height on the attendee site (Kunj and Luke, per Anurup's log). Mine: the phone check on cellular, which needs a person with a phone.
