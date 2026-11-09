@@ -15,3 +15,9 @@
 - **Anurup/Ahmed:** API must deploy the PR40 fixes; a Git merge alone does not prove the pod uses them.
 
 [Judge-facing submission](submission.md) · [Three-minute demo](demo-script.md) · [Playwright script](demo-three-minutes.mjs)
+
+## 23:56 UTC hosted queue blocker
+
+Fresh real browser survey201 at23:54:24UTC (`att_4f42wtj3wswe`, sourcedqr) remainedqueued beyond90seconds, behind earlier simulator records. The frontend itself has no exception. **Luke:** prioritize qr builds ahead of simulator in the queued-survey query while retaining oldest-first ordering inside each class. **Ahmed:** keep further simulated waves stopped until the current backlog drains; do not clear real surveys. This is separate from the fixed ledger-refresh error. A three-minute live demo cannot depend on a fresh scan waiting behind the simulator.
+
+The timed isolated recording passed180.004seconds,17checks andzero browserexceptions: attendeeatt_nwqyburnujpn, runrun_w5xojutinczx, tracee88388113c61baaa49a4fe0b26806d22. Localtemplate/dryrun only.

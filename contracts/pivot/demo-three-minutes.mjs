@@ -75,6 +75,7 @@ try {
   }
   await until(105);
   await page.goto(base+'/#/trends');
+  if (!await page.getByRole('textbox',{name:'API token',exact:true}).isVisible()) await page.getByText('Connection settings',{exact:true}).click();
   await page.getByRole('textbox',{name:'API token',exact:true}).fill(token);
   await page.getByRole('button',{name:'Use token',exact:true}).click();
   await page.getByRole('heading',{name:'Interests over time',exact:true}).waitFor({timeout:15000});
