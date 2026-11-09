@@ -300,4 +300,13 @@ export const TOUR: TourStep[] = [
 ];
 
 /** Narration text per step, read by the in-app voice and by the recorder's voiceover. */
-export const NARRATION = TOUR.map((step) => ({ id: step.id, text: step.body }));
+export const NARRATION = TOUR.map((step) => ({ id: step.id, text: spoken(step.body) }));
+
+/** Spellings a speech engine reads correctly; captions keep the written form. */
+export function spoken(text: string): string {
+  return text
+    .replace(/BACKSTAGE/g, "Backstage")
+    .replace(/\bYOLO\b/g, "Yolo")
+    .replace(/\bIT\b/g, "I.T.")
+    .replace(/\bAV\b/g, "A.V.");
+}
