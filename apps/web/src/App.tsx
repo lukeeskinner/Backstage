@@ -17,6 +17,7 @@ import { createMockTransport, DEMO_IDENTITIES, MOCK_PRINCIPALS } from "./mock/tr
 import { VoiceBriefingControl } from "./ui/VoiceBriefingControl";
 import { useInbox } from "./hooks/useInbox";
 import { VideoDemo } from "./demo/VideoDemo";
+import { IncidentRehearsal } from "./demo/IncidentRehearsal";
 import { HistoryView } from "./ui/HistoryView";
 import { InboxView } from "./ui/InboxView";
 import type { Identity } from "./ui/types";
@@ -147,7 +148,9 @@ export default function App() {
       devPanel={devPanel}
     >
       {route === "demo" ? (
-        <VideoDemo key={`video-${credentialGeneration}`} token={MOCK_MODE ? "" : token} />
+        <VideoDemo key={`video-${credentialGeneration}`} token={MOCK_MODE ? "" : token}>
+          {!MOCK_MODE && identity && identity.tier > 0 ? <IncidentRehearsal client={client} token={token} organizer={identity.tier === 3} announce={setAnnouncement} /> : <p>Use an authorized live role to follow the incident rehearsal. Attendees can watch the sanitized status view.</p>}
+        </VideoDemo>
       ) : route === "history" ? (
         <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={MOCK_MODE} />
       ) : route === "me" && identity && identity.tier > 0 ? (

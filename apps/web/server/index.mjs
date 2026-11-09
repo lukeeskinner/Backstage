@@ -2,20 +2,25 @@ import { createServer } from "node:http";
 import { pathToFileURL } from "node:url";
 import { createOpenAIRoutes } from "./openai.mjs";
 import { createPresenceServer } from "./presence.mjs";
+import { createRehearsalRoutes } from "./rehearsal.mjs";
 
 /**
  * One local process for the demo laptop: /openai/* from openai.mjs and everything else from presence.mjs.
  * presence.mjs stays untouched; its request listener is reused as the fallback handler.
  */
-export function createDemoServer({ presence = {}, openai = {} } = {}) {
+export function createDemoServer({ presence = {}, openai = {}, rehearsal = {} } = {}) {
   const routes = createOpenAIRoutes(openai);
+  const rehearsals = createRehearsalRoutes(rehearsal);
   const [presenceHandler] = createPresenceServer(presence).listeners("request");
-  return createServer(async (request, response) => {
+  const server = createServer(async (request, response) => {
+    if (await rehearsals.handle(request, response)) return;
     if (await routes.handle(request, response)) {
       return;
     }
     presenceHandler(request, response);
   });
+  server.on("close", rehearsals.close);
+  return server;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
