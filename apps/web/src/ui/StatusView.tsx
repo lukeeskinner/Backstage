@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import type { PresenceCounts, PublicRoomStatus, PublicStatus } from "../api/types";
 import { EVENT, venueRoomLabel } from "../venue/kubecon-na-2026";
 import { PRIVACY_NOTE } from "./AppShell";
@@ -17,6 +17,8 @@ export interface StatusViewProps {
   presence?: PresenceCounts | null;
   /** Projector only: the attendee join link, shown as a large QR next to the presence hero. */
   joinUrl?: string;
+  /** Projector only: extra strip under the hero, such as the count of attendee sites built. */
+  extra?: ReactNode;
 }
 
 function StatusWord({ status }: { status: PublicRoomStatus }) {
@@ -28,7 +30,7 @@ function StatusWord({ status }: { status: PublicRoomStatus }) {
   );
 }
 
-export function StatusView({ status, error, variant, presence, joinUrl }: StatusViewProps) {
+export function StatusView({ status, error, variant, presence, joinUrl, extra }: StatusViewProps) {
   const titleId = useId();
   const roomsId = useId();
   const sessionsId = useId();
@@ -72,6 +74,7 @@ export function StatusView({ status, error, variant, presence, joinUrl }: Status
           {joinUrl ? <JoinQr url={joinUrl} /> : null}
         </div>
       ) : null}
+      {projector ? extra : null}
       {!projector && presence ? <PresenceField counts={presence} variant="compact" /> : null}
 
       {status ? (
