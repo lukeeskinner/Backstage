@@ -129,3 +129,9 @@
 - **Branch:** luke/pivot-release (separate deployment integration branch; PR #38 stays focused on the worker).
 - **Reason:** hosted web uses Kunj's 71741b3 demo-tour, which predates the pivot screens. Deploying main directly would remove those deployed tour features. Merged main 9d4f478 and demo-tour 71741b3, resolving only additive App.tsx import/constants conflicts so both flows remain available.
 - **Validation:** explicit VITE_MOCK_API=false production TypeScript/Vite build passes. Full frontend tests are being checked before rollout. Worker pin remains e3df36f. This integration does not alter owner grants; cross-lane web changes require Kunj review before merging this branch.
+## 2026-11-09 — Address Gitar's simulator cadence finding
+
+- **PR:** #38. Gitar correctly identified that search-based claim counts can lag after removing refresh waits. Simulator publication now uses a single-worker in-process cadence: every tenth validated simulator build may commit; restart conservatively requires ten more builds. QR commits are unchanged. This supersedes the earlier claim that simulator cadence persists across restart.
+- **Verified:** 25 tests pass, including 20 consecutive simulated builds with search counts forced stale at zero (exactly two commits), followed by a restart (no extra commit). Retains template-only simulated builds and the existing hourly budget. Runtime must be repinned to this fix.
+
+- **Final integration validation:** 178 frontend tests, 37 Node server tests, and explicit live-mode TypeScript/Vite build pass. Includes worker cadence correction 0795c57.
