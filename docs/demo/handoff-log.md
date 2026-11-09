@@ -267,3 +267,10 @@
 - **Change** · Pin the published app/bootstrap source for the shared cluster. User approved the rehearsal producer access; web-rehearsal Secret was accepted and created with existing scoped identities, values hidden. No role credential rotation, vendor-key replacement or badge action.
 - **Verified** · Final149 frontend/34 Node tests, TypeScript/production build and two strict manifest schema checks pass. Compact feed/action UI replaces the nested full board so video and incident remain adjacent. Hosted apply and lifecycle proof follow.
 - **Refs** · main213495b (PR29), previous f05eb2d source; contract unchanged.
+
+
+## 2026-11-09 — Reconcile main and start the hosted rehearsal rollout
+
+- **Branch/refs** · kunj/video-incident-rehearsal, merged main213495b preserving PR29 and all appended handoffs.
+- **Changes** · Merge only plus this status entry; runtime source remains publishedf05eb2d. Existing cluster spec was copied and only CODE_SHA plus two server Secret references changed, Force off; Kubernetes dry run accepted1 resource, then apply succeeded. Generation10/new Pod web-6b7fc4cdf6-5kcnw: build-web complete, install-vision running. Historical Radar crash-loop alert does not match this Pod’s current initialization state.
+- **Verification** · Corrected Dockerfile path to deploy/web/Dockerfile after the extra check used apps/web/Dockerfile; the production image now builds.149 frontend/34 Node, TypeScript/build, manifest validation passed. No success claim for the hosted lifecycle until the new Pod is ready and its controls are exercised.
