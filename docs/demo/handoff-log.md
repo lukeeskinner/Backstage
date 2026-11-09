@@ -259,3 +259,11 @@
 - **Verification** · 149 frontend and34 Node tests pass, TypeScript/production build pass. New coverage exercises StrictMode, ambiguous start retry, other-role/cross-origin denial, one-run idempotency, recovery gating, failed ingress and expiry. Hosted rollout/full rehearsal follow publication, not claimed yet.
 - **Dependencies/limits** · Preserve all prior vendor/role Secrets, API writer, badges and collector. Existing producer/organizer bearers copied only to server Secret through Radar editor; no values committed or logged. Radar mock, queue persistence and physical mic/camera remain separately scoped limits. No simulated messages are called real notifications.
 - **Reviewed refs** · main23ab021 plus deployment PR29/1ed1e66 (now main213495b); Ali40b2270 and merged badge/API rehearsal handoff; Anurupf536b757 and README9ff5c9d; Luke's cluster identity/persistence handoff. Contracts unchanged.
+
+
+## 2026-11-09 — Publish rehearsal runtime pin
+
+- **Branch** · kunj/video-incident-rehearsal, runtimef05eb2dbb740ce8f36c0c4fb527eabf9dc8d9de6.
+- **Change** · Pin the published app/bootstrap source for the shared cluster. User approved the rehearsal producer access; web-rehearsal Secret was accepted and created with existing scoped identities, values hidden. No role credential rotation, vendor-key replacement or badge action.
+- **Verified** · Final149 frontend/34 Node tests, TypeScript/production build and two strict manifest schema checks pass. Compact feed/action UI replaces the nested full board so video and incident remain adjacent. Hosted apply and lifecycle proof follow.
+- **Refs** · main213495b (PR29), previous f05eb2d source; contract unchanged.
