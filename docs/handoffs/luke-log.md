@@ -135,3 +135,9 @@
 - **Verified:** 25 tests pass, including 20 consecutive simulated builds with search counts forced stale at zero (exactly two commits), followed by a restart (no extra commit). Retains template-only simulated builds and the existing hourly budget. Runtime must be repinned to this fix.
 
 - **Final integration validation:** 178 frontend tests, 37 Node server tests, and explicit live-mode TypeScript/Vite build pass. Includes worker cadence correction 0795c57.
+
+## 2026-11-09 — Simplify demo header at Luke's request
+
+- **Branch:** luke/pivot-release. Luke explicitly requested hiding the API token field and reducing visible roles to the main three or four.
+- **Changes:** live header shows Organizer, Venue staff, IT staff and Attendee. Speaker and backup identities remain in the collapsed Connection settings selector. The password token form is inside the same collapsed section. Existing token submission, per-role storage and backend authorization are unchanged. Mock mode retains its three available primary roles.
+- **Verified:** live-mode TypeScript/Vite build and 32 UI/token tests pass; updated test fixtures use the actual identity IDs. Previously integrated frontend suite 178 and Node server suite 37 pass. This is an explicit user-authorized web change; no ownership grant was changed.

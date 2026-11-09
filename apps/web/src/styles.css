@@ -1791,3 +1791,10 @@ input {
 }
 
 .join [data-tier="organizer"] { --tier-color: var(--ink); }
+
+/* Setup controls stay available without dominating the demo header. */
+.shell__settings { position: relative; font-size: 0.8125rem; }
+.shell__settings summary { cursor: pointer; color: var(--muted); padding: 10px 0; }
+.shell__settings-content { display: grid; gap: 16px; padding: 16px; margin-top: 4px; background: var(--panel); border: 1px solid var(--muted); border-radius: 12px; }
+.shell__settings[open] { flex-basis: 100%; }
+.shell__settings-content .field { max-width: 24rem; }

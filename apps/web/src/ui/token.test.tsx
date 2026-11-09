@@ -8,6 +8,7 @@ it("commits a token once on submit and discards a draft when switching identity"
   const commit = vi.fn();
   const props: AppShellProps = { route: "board", onNavigate: vi.fn(), identities: [], activeIdentityId: "organizer", onIdentityChange: vi.fn(), mockMode: false, token: "", onTokenChange: commit, announcement: "", children: null };
   const { rerender } = render(<AppShell {...props} />);
+  await user.click(screen.getByText("Connection settings"));
   await user.type(screen.getByLabelText("API token"), "test-organizer-token");
   expect(commit).not.toHaveBeenCalled();
   await user.keyboard("{Enter}");

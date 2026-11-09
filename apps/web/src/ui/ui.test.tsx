@@ -228,8 +228,8 @@ describe("BoardView", () => {
 
 describe("AppShell", () => {
   const identities = [
-    { id: "org", label: "Organizer", tier: 3 as const, description: "Approves plans." },
-    { id: "att", label: "Attendee", tier: 0 as const, description: "Reads status." },
+    { id: "organizer", label: "Organizer", tier: 3 as const, description: "Approves plans." },
+    { id: "attendee", label: "Attendee", tier: 0 as const, description: "Reads status." },
   ];
 
   function shell(route: "board" | "status" | "projector" = "board", mockMode = true) {
@@ -239,7 +239,7 @@ describe("AppShell", () => {
         route={route}
         onNavigate={onNavigate}
         identities={identities}
-        activeIdentityId="org"
+        activeIdentityId="organizer"
         onIdentityChange={vi.fn()}
         mockMode={mockMode}
         token=""
