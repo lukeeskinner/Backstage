@@ -150,3 +150,28 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Agent** · Still at 0 replicas. Anurup reproduced the cause (see `anurup-log.md`, 23:39 UTC): the ledger create is stored, but `refresh=wait_for` exceeds the worker's hard-coded Elasticsearch `request_timeout=5` in `services/agent-workers/agent_workers/__main__.py`, so the worker marks the survey failed. A 10 s timeout passed his isolated smoke. This needs a code fix in Luke's lane; a manifest setting can't change it. When there's a new agent SHA, I'll pin it and scale to 1.
 - **GitHub token** · `agent-github` still doesn't exist. A token was offered in chat; it was not used and should be revoked. The Secret must be entered by its owner through Radar's Secret editor.
 - **Open** · Agent fix and `agent-github` (Luke), web SHA (Kunj), the full `attendee-wave` run after the agent builds a site, and Radar evidence.
+
+## 2026-11-09 — Gate 3: three pins live, attendee wave ran, Radar evidence (Ahmed lane)
+
+- **Branch or PR** · `ali/pivot-runtime`. Cluster actions through Radar. Times are UTC.
+- **Pins live in `team-backstage`**:
+  - **API:** `incident-api` `831aecea2469127b8cbb87483db4c26d39d0912b`, rolled by Ahmed at 23:40.
+  - **Agent:** `agent-workers` `0795c57f0a0eeb606025704693ab6540aeb2567e`, rolled by Ahmed at 23:48. Template builder, `AGENT_COMMIT_MODE=github`, using the `agent-github` Secret that Luke created through Radar.
+  - **Web:** `7775848...` (Luke's `luke/pivot-release`), rolled by a teammate, 1/1 at 23:50. I observed it; I didn't roll it.
+  - **Earlier agent pins:** `13002f6` at 23:31 (failed on the refresh timeout; paused at 23:34), then `e3df36f` at 23:40 (refresh fix). `0795c57` corrects the simulator commit cadence after Gitar's finding on PR #38.
+- **Correction** · `17aa866` on `agent/sites` was Luke's synthetic GitHub-only test, not a run against another index, as I'd guessed above (per `luke-log.md`).
+- **Attendee wave (observed)** · Job `attendee-wave` (simulator `e69cc65`, 150 at 0.5/s, seed 7), 23:42:14 to 23:50:12: `created 150, interactions 278, rate_limited 0, rejected 0, unreachable 0`. Before it, `attendee-wave-smoke-2` sent 3 and the agent logged `outcome: ready` for `run_uzyq5p3hynnw` and `run_6vm4nz5syk6w`.
+- **Trends right after the wave (`pivot-status-3`, organizer token read inside the pod)** · Totals: `surveys 160, simulated 158, sites_ready 74, sites_failed 5, interactions 299, open_rate 0.89`.
+  - The agent was still draining the queue at that point.
+  - The growing topics show in the last two 5-minute buckets: `ai-agents` 21 → 34, `security` 13 → 18, `observability` 24 → 45.
+  - Roles: attendee 116, staff 20, speaker 16, organizer 8.
+  - The cluster agent's 1-in-10 simulator commits are landing on `agent/sites`, for example `c6d702a`, `e11b2f8`, `1eac3d2`, `4095400`, `2398e3d`, `87b0cf0`, `97bdfb2` and `5b2e49e`.
+- **Radar evidence (observed by me)** ·
+  - **Agent pod:** `agent-workers` events show the timeline: scaled up 23:31:48, down 23:34:40 (paused on the failure), up 23:40:48 with the fix, then the 23:48 repin.
+  - **Logs:** `get_pod_logs` on `prepare-runtime` showed "Prepared 23 agent runtime files at …@13002f6". `get_workload_logs` streamed `agent.run` JSON lines with `outcome: failed` before the fix and `outcome: ready` after, with no failed, error or claim_lost lines in the 10 minutes after the fix.
+  - **Quota:** CPU limits with everything running total about 4.25 of 10 cores (web 1.5, API 1.0, app 0.5, agent, collector and badge-control 0.25 each, stations 0.2 each, wave 0.1). The agent used about 2–5m CPU of its 250m.
+  - **Rollouts:** guarded JSON patches with `test` ops for `incident-api` (`f536b75` → `2fa5d03` → `831aece`) and strategic patches for `agent-workers`, each followed by `wait_for` rollout.
+  - **What Radar let me do without `kubectl`:** apply and patch every Deployment and Job; scale the failing agent to zero within minutes and back; read init-container and workload logs to find where the build broke; watch events and per-pod CPU against the quota; and run in-cluster probes that read secrets only inside the pod.
+- **Repo** · `deploy/platform/agent-workers.yaml` is pinned to `0795c57` in github mode, matching the cluster. The agent manifest test now allows `github` mode. Badge tests pass (46).
+- **Open** · Gate 4's Dash0 trace and the trail-to-commit walk belong to Luke and Anurup. Badge diagnosis stays `RADAR_MODE=mock`. Anurup's QA fixes (`8ef7abb`, merged as #40) aren't rolled; I'll roll them on his handoff.
+- **Reviewed** · main `58450db` (PRs #36–#40), `luke-log.md` through "Address Gitar's simulator cadence finding", `anurup-log.md` through "Finish the pivot lane" and the 23:39 timeout entry.

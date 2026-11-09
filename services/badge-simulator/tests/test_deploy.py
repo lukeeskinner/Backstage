@@ -305,7 +305,8 @@ class AgentManifestTests(unittest.TestCase):
         (agent,) = self.pod["containers"]
         env = {e["name"]: e.get("value") for e in agent["env"]}
         self.assertEqual(env["AGENT_BUILDER"], "template")
-        self.assertEqual(env["AGENT_COMMIT_MODE"], "dry-run")
+        # Luke released github mode at e3df36f once agent-github existed.
+        self.assertIn(env["AGENT_COMMIT_MODE"], ("dry-run", "github"))
         self.assertEqual(env["OTEL_EXPORTER_OTLP_ENDPOINT"], "http://otel-collector:4318")
         self.assertEqual(env["OTEL_SERVICE_NAME"], "agent-workers")
         init_sha = {e["name"]: e["value"] for e in init["env"]}["CODE_SHA"]
