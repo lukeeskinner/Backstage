@@ -15,4 +15,4 @@ export interface ActionState {
   error: UiError | null;
 }
 
-export type Route = "board" | "status" | "projector" | "join" | "me" | "history" | "demo";
+export type Route = "board" | "status" | "projector" | "join" | "me" | "history" | "demo" | "site" | "trends" | "trail";

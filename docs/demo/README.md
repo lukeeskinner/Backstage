@@ -5,6 +5,7 @@ The judges get five minutes, and three incidents with real verification waits ru
 | File | Use |
 | --- | --- |
 | [runbook.md](runbook.md) | Minute-by-minute run, who clicks what, cut order |
+| [pivot-demo-script.md](pivot-demo-script.md) | Three-minute pivot demo: QR survey, generated site, trends, trail |
 | [rehearsal-checklist.md](rehearsal-checklist.md) | Pre-demo checks and on-site venue tasks |
 | [recording-plan.md](recording-plan.md) | Backup video |
 | [dependencies.md](dependencies.md) | Open dependencies on Luke, Ali and the edge owner |
