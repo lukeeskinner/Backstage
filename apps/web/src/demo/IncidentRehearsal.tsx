@@ -25,6 +25,7 @@ export function IncidentRehearsal({ client, token, organizer, announce }: { clie
   const [access, setAccess] = useState(false);
   const [busy, setBusy] = useState(false);
   const intent = useRef(crypto.randomUUID());
+  const incidentCard = useRef<HTMLElement>(null);
   const active = useRef(true);
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const poll = useCallback(async (signal?: AbortSignal) => {
@@ -57,11 +58,12 @@ export function IncidentRehearsal({ client, token, organizer, announce }: { clie
     } catch (failure) { if (active.current) setError(failure instanceof Error ? failure.message : "Rehearsal action failed. Retry the same intent."); }
     finally { if (active.current) setBusy(false); }
   };
-  const incidents = board.incidents.filter((incident) => run?.incident_id ? incident.id === run.incident_id : incident.room_id === "room-b" && incident.type === "overflow");
+  const incidents = board.incidents.filter((incident) => run ? incident.id === run.incident_id : incident.room_id === "room-b" && incident.type === "overflow");
   const current = incidents.find((incident) => incident.id === run?.incident_id) ?? incidents[0];
   const currentId = current?.id;
   const currentVersion = current?.version;
   useEffect(() => { if (currentId) board.onTimelineOpen(currentId); }, [currentId, currentVersion, board.onTimelineOpen]);
+  useEffect(() => { if (currentId && actions.focusIncidentId === currentId) incidentCard.current?.focus(); }, [currentId, actions.focusIncidentId]);
   const events = current ? board.eventsById[current.id] : undefined;
   const action = current ? actions.actionState[current.id] : undefined;
   return <section className="incident-rehearsal" aria-labelledby="rehearsal-title">
@@ -78,10 +80,10 @@ export function IncidentRehearsal({ client, token, organizer, announce }: { clie
     {run ? <p className="incident-rehearsal__receipt">{run.samples} signal pairs committed · Run {run.id}{run.incident_id ? ` · Incident ${run.incident_id}` : " · Incident opens after 30 seconds"}. The producer continues if you switch pages; a server restart stops it without erasing saved evidence.</p> : null}
     {error || run?.error ? <p role="alert" className="notice notice--error">{error || run?.error}</p> : null}
     {board.loadError ? <p role="alert">{board.loadError.message}</p> : null}
-    {current ? <article className="incident-rehearsal__incident" aria-label="Live rehearsal incident">
+    {current ? <article ref={incidentCard} tabIndex={-1} className="incident-rehearsal__incident" aria-label="Live rehearsal incident">
       <h3>{current.summary}</h3><p role="status"><strong>{stateLabel(current.state)}</strong> · {current.verification.status === "passed" ? "Recovery verified" : "Recovery not yet verified"}</p>
       <p>{current.plan?.summary ?? "The agent is preparing a plan."}</p>
-      <p>{current.assignment ? `Venue staff assignment: ${current.assignment.assignee_id}. Open that person’s role inbox to accept.` : "Organizer inbox: review the proposed plan before dispatch."}</p>
+      <p>{current.assignment ? `Venue staff assignment: ${current.assignment.assignee_id}.${current.state === "dispatched" ? " Open that person’s role inbox to accept." : ""}` : "Organizer inbox: review the proposed plan before dispatch."}</p>
       {current.allowed_actions.includes("approve") ? <button type="button" className="btn btn--primary" disabled={Boolean(action?.busy)} onClick={() => void actions.run(current, "approve")}>Approve plan</button> : null}
       {current.allowed_actions.includes("ack") ? <button type="button" className="btn btn--primary" disabled={Boolean(action?.busy)} onClick={() => void actions.run(current, "ack")}>Accept assignment</button> : null}
       {action?.error ? <p role="alert">{action.error.message}</p> : null}

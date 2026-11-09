@@ -302,3 +302,10 @@
 - **Branch/PR** · kunj/video-incident-rehearsal, PR30.
 - **Runtime pin** ·5c154d5f345f2ec0a28283fdf67b5eaa6764e753 includes Vite origin fix, valid trace context continuity,48rem presentation and memory-only JPEG proxy. Source-only web dry run accepted1 resource, Force off; applied after the first incident resolved. Both existing Secret references remain unchanged.
 - **Verified** ·149 frontend/37 Node tests, TypeScript/production build, production Docker image and nginx -t with the real mounted vision include pass. Gitar and both CI checks green at5c154d5. Final deployed readiness/second lifecycle proof follows. No API or badge deployment changed.
+
+
+## 2026-11-09 — Keep repeat-run evidence and keyboard focus scoped
+
+- **Branch/PR** · kunj/video-incident-rehearsal, PR30.
+- **Fix** · A newly started run with no incident ID must not fall back to the previous resolved Room B incident. Hide that old card while collecting the new30s trigger. Keep keyboard focus on the stable incident article after an action and stop inviting acceptance after it was already accepted. New regression covers previous-run separation.
+- **Verified** ·150 frontend/37 Node tests, TypeScript and explicitly live-mode production build (VITE_MOCK_API=false, voice and /otel enabled) pass. Prior default local build could prune live-only UI, so the explicit live-mode build is the relevant artifact check. No lifecycle or contract change. Final source pin/second hosted rehearsal follow this UI-only correction.
