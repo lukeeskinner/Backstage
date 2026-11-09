@@ -13,6 +13,10 @@
     "edge": {"github_login": null, "paths": ["services/cam-edge/"]}
   },
   "contributors": {
+    "agent": {
+      "github_login": "lukeeskinner",
+      "paths": ["generated/sites/"]
+    },
     "anurup": {
       "github_login": "anurupkumar18",
       "paths": [

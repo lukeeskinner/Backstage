@@ -1,52 +1,431 @@
 import type { Transport } from "./transport";
 
-export const INTERESTS = ["observability", "platform-engineering", "ai-agents", "security", "networking", "storage-data", "gitops-delivery", "finops-sustainability", "wasm-edge", "community-careers"] as const;
-export type Interest = typeof INTERESTS[number];
-export type Source = "qr" | "simulator";
-export type Level = "new" | "practitioner" | "expert";
-export type Role = "attendee" | "speaker" | "staff" | "organizer";
-export type Vibe = "calm" | "bold" | "playful";
-export type Accessibility = "large_text" | "reduced_motion" | "high_contrast";
-export interface Answers { role: Role; interests: Interest[]; level: Level; vibe: Vibe; accessibility: Accessibility[]; goal?: string }
-export type PublicAnswers = Omit<Answers, "goal">;
-export interface SurveyRequest { source: Source; answers: Answers }
-export interface Session { session_id: string; title: string; abstract: string; track: string; tags: string[]; level: Level; format: string; room: string; starts_at: string; ends_at: string; synthetic: boolean }
+/** Pivot contract v1. Shapes mirror contracts/pivot/examples.v1.json. */
+export const ROLES = ["attendee", "speaker", "staff", "organizer"] as const;
+export const INTERESTS = [
+  "observability",
+  "platform-engineering",
+  "ai-agents",
+  "security",
+  "networking",
+  "storage-data",
+  "gitops-delivery",
+  "finops-sustainability",
+  "wasm-edge",
+  "community-careers",
+] as const;
+export const LEVELS = ["new", "practitioner", "expert"] as const;
+export const VIBES = ["calm", "bold", "playful"] as const;
+export const ACCESSIBILITY = [
+  "large_text",
+  "reduced_motion",
+  "high_contrast",
+] as const;
+
+export type Role = (typeof ROLES)[number];
+export type Interest = (typeof INTERESTS)[number];
+export type Level = (typeof LEVELS)[number];
+export type Vibe = (typeof VIBES)[number];
+export type AccessibilityNeed = (typeof ACCESSIBILITY)[number];
+export type SurveySource = "qr" | "simulator";
+export type SiteStatus = "queued" | "building" | "ready" | "failed";
+export type Builder = "template" | "openai";
+export type CommitMode = "dry-run" | "github";
 export type ReasonCode = "interest" | "goal" | "level" | "trending" | "semantic";
-export interface Recommendation extends Session { score: number; reasons: { code: ReasonCode; label: string }[] }
-export interface Site { status: "queued" | "building" | "ready" | "failed"; run_id?: string | null; attempt?: number; builder?: "template" | "openai" | null; commit_mode?: "dry-run" | "github" | null; commit_sha?: string | null; commit_url?: string | null; html_sha256?: string | null; html?: string | null; spec?: Record<string, unknown> | null; updated_at?: string; error?: string | null }
-export interface SurveyReceipt { attendee_id: string; site: Site; recommendations: Recommendation[] }
-export interface Attendee extends SurveyReceipt { created_at: string; source: Source; answers: PublicAnswers; progress: { seq: number; step: string; title: string; at: string }[] }
-export interface InteractionRequest { session_id: string; action: "open" | "save" | "dismiss"; position: number }
-export interface Count { key: string; count: number }
-export interface Series { buckets: string[]; series: { key: string; counts: number[] }[] }
-export interface TrendsQuery { window?: "15m" | "30m" | "60m" | "6h" | "24h"; interval?: "1m" | "5m" | "15m" | "1h"; interest?: Interest | ""; source?: Source | "" }
-export interface Trends { window: string; interval: string; generated_at: string; filters: { interest: Interest | null; source: Source | null }; totals: { surveys: number; simulated: number; sites_ready: number; sites_failed: number; interactions: number; open_rate: number }; interests_over_time: Series; roles: Count[]; levels: Count[]; vibes: Count[]; sessions: { session_id: string; title: string; recommended: number; opened: number; saved: number; dismissed: number }[]; agent: { builds_over_time: Series; latency_ms: { p50: number | null; p95: number | null }; decisions: Record<string, Count[]>; builders: Count[]; commit_modes: Count[] } }
+export type InteractionAction = "open" | "save" | "dismiss";
 export type LedgerKind = "decision" | "action" | "commit" | "log" | "error";
-export type LedgerStep = "claim" | "retrieve" | "plan" | "write" | "validate" | "commit" | "publish";
-export type LedgerTool = "elasticsearch" | "openai" | "template" | "validator" | "github";
-export type Outcome = "ok" | "fallback" | "retry" | "rejected" | "error";
-export interface LedgerEvent { event_id: string; run_id: string; attendee_id: string; seq: number; at: string; kind: LedgerKind; step: LedgerStep; title: string; detail: string; tool: LedgerTool; outcome: Outcome; builder: "openai" | "template"; source: Source; duration_ms?: number; run_duration_ms?: number; model?: string; tokens?: { input: number; output: number }; decision?: { name: "theme" | "layout" | "tone" | "featured"; value: string; alternatives?: string[]; rationale: string } | null; commit?: { mode: "dry-run" | "github"; sha?: string; url?: string | null; branch?: string; path?: string; message?: string; additions?: number } | null; trace_id: string | null; span_id?: string; trace_url: string | null; highlight?: Record<string, string[]> }
-export interface TrailQuery { q?: string; kind?: LedgerKind | ""; step?: LedgerStep | ""; tool?: LedgerTool | ""; outcome?: Outcome | ""; attendee_id?: string; run_id?: string; from?: string; to?: string; limit?: number }
-export interface TrailSearch { total: number; limit: number; items: LedgerEvent[]; facets: Record<"kind" | "step" | "tool" | "outcome", Count[]> }
-export interface TrailRun { run_id: string; attendee_id: string | null; survey: (PublicAnswers & { source: Source; created_at: string }) | null; site: Site | null; trace_id: string | null; trace_url: string | null; events: LedgerEvent[] }
-export type PivotResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; message: string };
-export interface PivotClient { submitSurvey(body: SurveyRequest, signal?: AbortSignal): Promise<PivotResult<SurveyReceipt>>; getAttendee(id: string, signal?: AbortSignal): Promise<PivotResult<Attendee>>; recordInteraction(id: string, body: InteractionRequest, signal?: AbortSignal): Promise<PivotResult<{ accepted: true }>>; getTrends(query?: TrendsQuery, signal?: AbortSignal): Promise<PivotResult<Trends>>; searchTrail(query?: TrailQuery, signal?: AbortSignal): Promise<PivotResult<TrailSearch>>; getTrailRun(id: string, signal?: AbortSignal): Promise<PivotResult<TrailRun>> }
-export function createPivotClient({ transport, getToken = () => "" }: { transport: Transport; getToken?: () => string }): PivotClient {
-  async function request<T>(method: "GET" | "POST", path: string, body: unknown, organizer: boolean, signal?: AbortSignal): Promise<PivotResult<T>> {
-    try {
-      const response = await transport({ method, path: "/api/v1" + path, body, headers: organizer ? { Authorization: `Bearer ${getToken()}` } : {}, signal });
-      if (response.status >= 200 && response.status < 300) return { ok: true, data: response.json as T };
-      const error = (response.json as { error?: { code?: string; message?: string } })?.error;
-      return { ok: false, status: response.status, code: error?.code ?? "unavailable", message: error?.message ?? "Request unavailable. Try again." };
-    } catch (error) { if (signal?.aborted) throw error; return { ok: false, status: 0, code: "network", message: "Could not connect. Try again." }; }
-  }
-  const query = (values: object) => { const params = new URLSearchParams(); Object.entries(values).forEach(([key, value]) => { if (value !== undefined && value !== null && value !== "") params.set(key, String(value)); }); return params.size ? "?" + params.toString() : ""; };
-  return {
-    submitSurvey: (body, signal) => request("POST", "/attendee/surveys", body, false, signal),
-    getAttendee: (id, signal) => request("GET", `/attendee/${encodeURIComponent(id)}`, undefined, false, signal),
-    recordInteraction: (id, body, signal) => request("POST", `/attendee/${encodeURIComponent(id)}/interactions`, body, false, signal),
-    getTrends: (values = {}, signal) => request("GET", "/pivot/trends" + query(values), undefined, true, signal),
-    searchTrail: (values = {}, signal) => request("GET", "/pivot/trail/search" + query(values), undefined, true, signal),
-    getTrailRun: (id, signal) => request("GET", `/pivot/trail/runs/${encodeURIComponent(id)}`, undefined, true, signal),
+export type LedgerStep =
+  | "claim"
+  | "retrieve"
+  | "plan"
+  | "write"
+  | "validate"
+  | "commit"
+  | "publish";
+export type LedgerOutcome = "ok" | "fallback" | "retry" | "rejected" | "error";
+export type LedgerTool =
+  | "elasticsearch"
+  | "openai"
+  | "template"
+  | "validator"
+  | "github";
+
+export interface SurveyAnswers {
+  role: Role;
+  interests: Interest[];
+  level: Level;
+  /** Optional free text, at most 140 characters. Never returned by public routes. */
+  goal?: string;
+  vibe: Vibe;
+  accessibility: AccessibilityNeed[];
+}
+
+export interface SurveyRequest {
+  source: SurveySource;
+  answers: SurveyAnswers;
+}
+
+export interface RecommendationReason {
+  code: ReasonCode;
+  label: string;
+}
+
+export interface Recommendation {
+  session_id: string;
+  title: string;
+  abstract: string;
+  track: string;
+  tags: string[];
+  level: string;
+  format: string;
+  room: string;
+  starts_at: string;
+  ends_at: string;
+  synthetic: boolean;
+  score: number;
+  reasons: RecommendationReason[];
+}
+
+export interface SiteSpec {
+  version: number;
+  headline: string;
+  tone: string;
+  theme: {
+    name: string;
+    background: string;
+    text: string;
+    accent: string;
+    text_scale: number;
+    motion: string;
+  };
+  layout: string;
+  sections: string[];
+  featured: { session_id: string; reason: string }[];
+}
+
+export interface SiteState {
+  status: SiteStatus;
+  run_id?: string | null;
+  attempt?: number;
+  builder?: Builder | null;
+  commit_mode?: CommitMode | null;
+  commit_sha?: string | null;
+  commit_url?: string | null;
+  html_sha256?: string | null;
+  html?: string | null;
+  spec?: SiteSpec | null;
+  updated_at?: string;
+}
+
+export interface ProgressStep {
+  seq: number;
+  step: LedgerStep;
+  title: string;
+  at: string;
+}
+
+export interface SurveyCreated {
+  attendee_id: string;
+  site: SiteState;
+  recommendations: Recommendation[];
+}
+
+export interface AttendeeView {
+  attendee_id: string;
+  answers: Omit<SurveyAnswers, "goal">;
+  recommendations: Recommendation[];
+  site: SiteState;
+  progress: ProgressStep[];
+}
+
+export interface InteractionRequest {
+  session_id: string;
+  action: InteractionAction;
+  position: number;
+}
+
+export interface InteractionAccepted {
+  accepted: boolean;
+}
+
+export interface KeyCount {
+  key: string;
+  count: number;
+}
+
+export interface SeriesGroup {
+  buckets: string[];
+  series: { key: string; counts: number[] }[];
+}
+
+export interface TrendsParams {
+  window?: string | null;
+  interval?: string | null;
+  interest?: string | null;
+  source?: string | null;
+}
+
+export interface TrendsResponse {
+  window: string;
+  interval: string;
+  generated_at: string;
+  filters: { interest: string | null; source: string | null };
+  totals: {
+    surveys: number;
+    simulated: number;
+    sites_ready: number;
+    sites_failed: number;
+    interactions: number;
+    open_rate: number;
+  };
+  interests_over_time: SeriesGroup;
+  roles: KeyCount[];
+  levels: KeyCount[];
+  vibes: KeyCount[];
+  sessions: {
+    session_id: string;
+    title: string;
+    recommended: number;
+    opened: number;
+    saved: number;
+    dismissed: number;
+  }[];
+  agent: {
+    builds_over_time: SeriesGroup;
+    latency_ms: { p50: number; p95: number };
+    decisions: {
+      theme: KeyCount[];
+      layout: KeyCount[];
+      tone: KeyCount[];
+    };
+    builders: KeyCount[];
+    commit_modes: KeyCount[];
   };
 }
+
+export interface TrailDecision {
+  name: string;
+  value: string;
+  alternatives?: string[];
+  rationale?: string;
+}
+
+export interface TrailCommit {
+  mode: CommitMode;
+  sha: string;
+  url?: string | null;
+  branch?: string;
+  path?: string;
+  message?: string;
+  additions?: number;
+}
+
+export interface TrailItem {
+  event_id: string;
+  run_id: string;
+  attendee_id: string;
+  seq: number;
+  at: string;
+  kind: LedgerKind;
+  step: LedgerStep;
+  title: string;
+  detail?: string | null;
+  highlight?: Record<string, string[]> | null;
+  decision?: TrailDecision | null;
+  tool?: LedgerTool | null;
+  model?: string | null;
+  tokens?: { input: number; output: number } | null;
+  duration_ms?: number | null;
+  outcome?: LedgerOutcome | null;
+  builder?: Builder | null;
+  source?: SurveySource | null;
+  commit?: TrailCommit | null;
+  trace_id?: string | null;
+  span_id?: string | null;
+  trace_url?: string | null;
+}
+
+export interface TrailSearchParams {
+  q?: string | null;
+  kind?: string | null;
+  step?: string | null;
+  tool?: string | null;
+  outcome?: string | null;
+  attendee_id?: string | null;
+  run_id?: string | null;
+  from?: string | null;
+  to?: string | null;
+  limit?: number | null;
+}
+
+export interface TrailFacets {
+  kind: KeyCount[];
+  step: KeyCount[];
+  tool: KeyCount[];
+  outcome: KeyCount[];
+}
+
+export interface TrailSearchResponse {
+  total: number;
+  limit: number;
+  items: TrailItem[];
+  facets: TrailFacets;
+}
+
+export interface TrailRunResponse {
+  run_id: string;
+  attendee_id: string;
+  survey: Omit<SurveyAnswers, "goal"> & {
+    source: SurveySource;
+    created_at: string;
+  };
+  site: Pick<
+    SiteState,
+    | "status"
+    | "builder"
+    | "commit_mode"
+    | "commit_sha"
+    | "commit_url"
+    | "html_sha256"
+  >;
+  trace_id: string | null;
+  trace_url: string | null;
+  events: TrailItem[];
+}
+
+export class PivotApiError extends Error {
+  status: number;
+  code: string;
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = "PivotApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+function toError(status: number, json: unknown): PivotApiError {
+  const error =
+    json && typeof json === "object"
+      ? (json as { error?: unknown }).error
+      : null;
+  const fields =
+    error && typeof error === "object"
+      ? (error as { code?: unknown; message?: unknown })
+      : {};
+  const code =
+    typeof fields.code === "string" && fields.code
+      ? fields.code
+      : status === 0
+        ? "network_error"
+        : `http_${status}`;
+  const message =
+    typeof fields.message === "string" && fields.message
+      ? fields.message
+      : `Request failed with status ${status}.`;
+  return new PivotApiError(status, code, message);
+}
+
+function query(params: object): string {
+  const parts: string[] = [];
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === "") continue;
+    parts.push(
+      `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    );
+  }
+  return parts.length ? `?${parts.join("&")}` : "";
+}
+
+export function createPivotClient({
+  transport,
+  getToken,
+}: {
+  transport: Transport;
+  getToken?: () => string;
+}) {
+  async function call<T>(
+    method: "GET" | "POST",
+    path: string,
+    options: { body?: unknown; signal?: AbortSignal; organizer?: boolean } = {},
+  ): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (options.organizer) {
+      const token = getToken?.() ?? "";
+      if (token) headers.Authorization = `Bearer ${token}`;
+    }
+    let response;
+    try {
+      response = await transport({
+        method,
+        path,
+        headers,
+        ...(options.body !== undefined ? { body: options.body } : {}),
+        ...(options.signal ? { signal: options.signal } : {}),
+      });
+    } catch (cause) {
+      if (cause instanceof DOMException && cause.name === "AbortError")
+        throw cause;
+      throw new PivotApiError(
+        0,
+        "network_error",
+        cause instanceof Error ? cause.message : "Network request failed.",
+      );
+    }
+    if (response.status < 200 || response.status >= 300)
+      throw toError(response.status, response.json);
+    return response.json as T;
+  }
+
+  return {
+    /** Public. */
+    submitSurvey(body: SurveyRequest) {
+      return call<SurveyCreated>("POST", "/attendee/surveys", { body });
+    },
+    /** Public; the attendee id is the capability. */
+    getAttendee(attendeeId: string, signal?: AbortSignal) {
+      return call<AttendeeView>(
+        "GET",
+        `/attendee/${encodeURIComponent(attendeeId)}`,
+        { signal },
+      );
+    },
+    /** Public. */
+    recordInteraction(attendeeId: string, body: InteractionRequest) {
+      return call<InteractionAccepted>(
+        "POST",
+        `/attendee/${encodeURIComponent(attendeeId)}/interactions`,
+        { body },
+      );
+    },
+    /** Organizer bearer. */
+    getTrends(params: TrendsParams = {}) {
+      const { window, interval, interest, source } = params;
+      return call<TrendsResponse>(
+        "GET",
+        `/pivot/trends${query({ window, interval, interest, source })}`,
+        { organizer: true },
+      );
+    },
+    /** Organizer bearer. */
+    searchTrail(params: TrailSearchParams = {}) {
+      const { q, kind, step, tool, outcome, attendee_id, run_id, from, to, limit } =
+        params;
+      return call<TrailSearchResponse>(
+        "GET",
+        `/pivot/trail/search${query({ q, kind, step, tool, outcome, attendee_id, run_id, from, to, limit })}`,
+        { organizer: true },
+      );
+    },
+    /** Organizer bearer. */
+    getTrailRun(runId: string) {
+      return call<TrailRunResponse>(
+        "GET",
+        `/pivot/trail/runs/${encodeURIComponent(runId)}`,
+        { organizer: true },
+      );
+    },
+  };
+}
+
+export type PivotClient = ReturnType<typeof createPivotClient>;

@@ -1,0 +1,27 @@
+{
+  "description": "Optional second line of defense. Mask key-shaped strings in agent ledger text before it is stored.",
+  "processors": [
+    {
+      "gsub": {
+        "field": "title",
+        "pattern": "(sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,})",
+        "replacement": "[masked]",
+        "ignore_missing": true
+      }
+    },
+    {
+      "gsub": {
+        "field": "detail",
+        "pattern": "(sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]{8,})",
+        "replacement": "[masked]",
+        "ignore_missing": true
+      }
+    },
+    {
+      "set": {
+        "field": "ingested_at",
+        "value": "{{{_ingest.timestamp}}}"
+      }
+    }
+  ]
+}

@@ -64,7 +64,7 @@ Extend `JoinPage`. One screen, large touch targets, about twenty seconds to fini
 
 ### 5 · Trail mount, proxy, rollout
 
-- Mount Anurup's component at `#/trail` with one line: `<TrailConsole client={client} mockMode={MOCK_MODE} />`. Tell him the route names at T+10.
+- Mount Anurup's component at `#/trail`: `<TrailConsole pivot={pivot} mockMode={MOCK_MODE} />`, where `pivot = createPivotClient({ transport: fetchTransport(API_BASE_URL), getToken: () => token })` from `src/api/pivot.ts`. The same client has `submitSurvey`, `getAttendee`, `recordInteraction` and `getTrends` for your screens.
 - In `deploy/web/nginx.conf`, add a location for `/api/v1/attendee/` ahead of the general API block, with its own `limit_req` zone and a 4 KB body cap. Every phone at the venue arrives from one gateway address, so key the zone on something other than the client IP or set the rate for the whole room.
 - Web rollouts take several minutes because vision dependencies reinstall. Plan for two: about T+20 and T+40. Tell Ahmed before each one because of the CPU quota. Dropping the vision sidecar for this hour would make rollouts fast; that is your decision.
 
