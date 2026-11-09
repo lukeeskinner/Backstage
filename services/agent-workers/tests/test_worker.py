@@ -113,6 +113,22 @@ class WorkerTests(unittest.TestCase):
         return Worker(self.store, settings, builder=kwargs.pop('builder', self.builder), validator=kwargs.pop('validator', self.validator),
                       tracer=self.provider.get_tracer('test'), now=lambda: NOW, run_id_factory=lambda: RUN, **kwargs)
 
+    def test_slow_search_refresh_does_not_fail_acknowledged_build(self):
+        original_index, original_update = self.store.index, self.store.update
+        def delayed_refresh(operation):
+            def write(**kwargs):
+                result = operation(**kwargs)
+                if kwargs.get("refresh") == "wait_for":
+                    raise TimeoutError("Write persisted but search refresh exceeded timeout")
+                return result
+            return write
+        self.store.index = delayed_refresh(original_index)
+        self.store.update = delayed_refresh(original_update)
+        worker = self.worker()
+        self.assertTrue(worker.run_once())
+        self.assertEqual(self.store.survey['site']['status'], 'ready')
+        self.assertEqual(list(self.store.ledger.values())[-1]['step'], 'publish')
+
     def test_claim_dry_run_publish_parent_trace_and_create_only_ledger(self):
         worker = self.worker()
         self.assertTrue(worker.run_once())

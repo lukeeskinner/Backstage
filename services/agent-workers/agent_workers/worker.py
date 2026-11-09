@@ -259,6 +259,8 @@ class Worker:
         claimed = False
         published = False
 
+        # Writes need acknowledgment, not search visibility. Serverless refresh can
+        # exceed our request timeout; ownership checks use real-time GET plus OCC.
         def emit(kind, step, title, detail, tool, outcome="ok", **fields):
             nonlocal seq
             seq += 1
@@ -270,7 +272,7 @@ class Worker:
                      "service": "agent-workers", "service_version": self.settings.service_version, **fields}
             try:
                 self.client.index(index=self.ledger, id=event["event_id"], document=event, op_type="create",
-                                  require_alias=True, refresh="wait_for", include_source_on_error=False)
+                                  require_alias=True, refresh=False, include_source_on_error=False)
             except Exception as error:
                 if status_code(error) == 409:
                     existing = self.client.get(index=self.ledger, id=event["event_id"])
@@ -287,7 +289,7 @@ class Worker:
             try:
                 self.client.update(index=self.surveys, id=attendee_id, doc={"site": updated},
                                    if_seq_no=current["_seq_no"], if_primary_term=current["_primary_term"],
-                                   require_alias=True, refresh="wait_for")
+                                   require_alias=True, refresh=False)
             except Exception as error:
                 if status_code(error) == 409:
                     raise ClaimLost("claim_lost") from None
@@ -304,7 +306,7 @@ class Worker:
                 try:
                     self.client.update(index=self.surveys, id=attendee_id, doc={"site": new_site},
                                        if_seq_no=hit["_seq_no"], if_primary_term=hit["_primary_term"],
-                                       require_alias=True, refresh="wait_for")
+                                       require_alias=True, refresh=False)
                 except Exception as error:
                     if status_code(error) == 409:
                         return False
