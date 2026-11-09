@@ -4,7 +4,9 @@
   padding: 1.25rem;
   margin-top: 1rem;
   min-width: 0;
+  background: var(--panel, #fff);
   color: inherit;
+  font-size: 0.9375rem;
 }
 .evidence h3,
 .evidence h4,
@@ -95,6 +97,7 @@
   max-width: 250px;
 }
 .evidence__sequence button {
+  display: block;
   text-align: left;
   min-height: 3.5rem;
 }
@@ -113,7 +116,13 @@
   padding: 0.6rem 0.75rem;
 }
 .evidence button {
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
   cursor: pointer;
+}
+
+.evidence .evidence__sequence button {
+  border-radius: 12px;
 }
 .evidence button[aria-pressed="true"] {
   border-color: var(--orange-text, #a64608);

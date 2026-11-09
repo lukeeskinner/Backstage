@@ -28,6 +28,6 @@
 .video-demo input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--ink); }
 .video-demo__upload { display: grid; gap: 8px; font-size: 0.875rem; }
 .video-demo__upload input { min-width: 0; width: 100%; font-size: 0.8125rem; }
-.video-demo__upload input::file-selector-button { min-height: 44px; margin-right: 8px; background: var(--soft); border: 1px solid var(--border); border-radius: 8px; padding: 8px; color: var(--text); }
+.video-demo__upload input::file-selector-button { min-height: 44px; margin-right: 8px; background: var(--soft); border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; color: var(--text); }
 .video-demo__links a { color: var(--text); text-underline-offset: 4px; font-size: 0.875rem; padding-block: 8px; }
 @media (max-width: 64rem) { .video-demo__layout { grid-template-columns: 1fr; } .video-demo__side { grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); } }
