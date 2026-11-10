@@ -142,3 +142,23 @@
 - **Regression evidence:** new `diagnostics/AppTrail.test.tsx` first failed both tests because the actual App route rendered the placeholder. After the fix it verifies a live authenticated search and run timeline through the real typed client, fresh authorization and cleared timeline after token replacement, and a live-build tour's sample trail/run with zero network calls. Only tour navigation timing is stubbed; the trail and client are real.
 - **Verification:** `cd apps/web && npx vitest run src/diagnostics/AppTrail.test.tsx src/diagnostics/TrailConsole.test.tsx src/App.tour.test.tsx` passes 17 tests; `npm run typecheck` passes; full `npm test` passes 193 UI tests and 37 Node tests. Existing jsdom canvas `getContext` notices remain nonfatal. `git diff --check` passes.
 - **Handoff:** parent reviews and publishes the focused route restoration. No commit or push performed by this implementer before the requested report; no cloud writes or output artifact edits. Current main, the reviewer's reported route regression and prior integration `452a6d5` are the only source dependencies of this patch.
+## 2026-11-09 23:56 UTC — Timed demo passed; hosted QR waits behind simulator
+
+- Branch: anurup/pivot-demo-submission follow-up afterPR43.
+- TimedrealAPIPlaywright pass:180.004s,17checks,noexceptions, exactrunselected; report records template/dryrun. Script nowopens collapsedConnectionsettings beforetokenentry forlatestheader.
+- Hostedphone-width test: initial502duringAPIrollout; retry201at23:54:24createdatt_4f42wtj3wswe, butstayedqueued >90s. Read-onlyES showsolder simulatorqueues ahead. Luke: prioritizeqr over simulator whileFIFO withincohort. Ahmed: hold furtherwaves/drainbacklog; donotdelete participantrecords.
+- Privacywording/publiccapability andiframeresizehandoffs remainopen. Humanphysicalcellular checkinprogress, notyetconfirmed.
+- Reviewed: mainfefe263 includingPR41/43, APIdeployed0d52eb7 andworker0795c57 perAhmed9b514c5; web7775848 perLuke.
+
+## 2026-11-10 00:09 UTC — Hosted browser proof and final-main review
+
+- Branch/PR: anurup/pivot-demo-submission (#45). Updated judge submission and release evidence with a successful fresh hosted Playwright survey/site/save/role-denial run and real commit7ecdd453. Template/github provenance retained; OpenAI generation remains unproven.
+- Verified: hosted report14 checks, zero browser exceptions; main e3a8f08 frontend191/Node37, API66 passed2 skipped, integration10, production build. Prior queued survey eventually completed after5m38; fresh retry now completes. Manual phone screenshot still has excessive blank iframe space.
+- New release regression: independent reviewer found #/trail placeholder reintroduced by integration. Anurup is restoring the existing client/console inside its granted App path with App-level regression tests. Kunj/Luke still own public-link disclosure and iframe sizing; actual phone check pending. No false claim that all major findings are closed.
+- Reviewed main e3a8f08, Kunj b99166e tour isolation handoff, Ahmed9b514c5 rollout evidence, Luke0795c57 worker/cadence; scope and deployment boundaries remain explicit.
+
+## 2026-11-10 00:12 UTC — Final real-browser release evidence
+
+- PR46 restoration independently approved, Gitar/scaffold/changed-path checks passed on fd9bc87. Merge current main bc3592f (PR45 submission/evidence) preserving both additive handoff entries; no application merge conflicts or source changes.
+- Final Playwright tour passed in180.007seconds: actual API/Elasticsearch survey, six recommendations, template/dry-run site, Save202, three viewport widths, organizer trends, exact run search/detail, role denial, zero browser exceptions. Websourcefd9bc87; API/worker e3a8f08-pivot-qa. Trace307277c58a6597baf7de68cec68ffa61 confirmed29spans inDash0:5API and24worker; ten recorded ledger events. User-facing recording/script/submission in parent's outputs/backstage-pivot.
+- Separate hosted phone-viewport run uses template/github and commit7ecdd453, not the local dry-run mode. Physical cellular result still pending. Latest hosted web pin7775848 does not establish deployment of this restoration; Kunj/Ahmed must roll the merged web source. Public-link disclosure and iframe blank height remain explicit owner handoffs.
