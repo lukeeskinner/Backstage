@@ -26,7 +26,7 @@
 
 ## Demo scope
 
-- Real Elasticsearch, hosted worker and GitHub publication have been exercised.
+- The hosted QR survey → recommendations → generated page → GitHub commit flow passes real browser checks.
 - The verified live build uses templates; successful OpenAI page generation is still pending.
 - Sessions are synthetic; simulated attendees are labelled. Generated pages are public.
 
