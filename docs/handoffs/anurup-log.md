@@ -134,3 +134,18 @@
 - Verified: quickbrowserflow56.136s, no exceptions/horizontal overflow390/768/1440; real API15/15; Dash0 returned29 correlatedAPI/worker spans for tracec08286c4d9a497fd370ce3a797eec931. Created6-panel attendee dashboard api-086bc190-c61b-438e-b6bb-234291bd4b27; allqueriesvalid,13ESlatency and9APIseries atcheckpoint. Newcounters remainNoobservations then.
 - Handoffs: Kunj/Luke privacy wording/public capability issue remainsopen; Kunj iframeheight resizeblank noted frommanualscreenshots; Ahmed mustrollPR40API andlatestworker. Scope/limits inrelease-evidence.md. Timedrecording currentlyrunning; fullhostedbrowserQA separate.
 - Reviewed: main58450db PR38/39/40; Luke0795c57 cadence and7775848 releaseintegration; Ahmede086b3c. IndependentreviewpassedfivePR40fixes; doesnotcloseprivacyfinding.
+
+## 2026-11-09 23:56 UTC — Timed demo passed; hosted QR waits behind simulator
+
+- Branch: anurup/pivot-demo-submission follow-up afterPR43.
+- TimedrealAPIPlaywright pass:180.004s,17checks,noexceptions, exactrunselected; report records template/dryrun. Script nowopens collapsedConnectionsettings beforetokenentry forlatestheader.
+- Hostedphone-width test: initial502duringAPIrollout; retry201at23:54:24createdatt_4f42wtj3wswe, butstayedqueued >90s. Read-onlyES showsolder simulatorqueues ahead. Luke: prioritizeqr over simulator whileFIFO withincohort. Ahmed: hold furtherwaves/drainbacklog; donotdelete participantrecords.
+- Privacywording/publiccapability andiframeresizehandoffs remainopen. Humanphysicalcellular checkinprogress, notyetconfirmed.
+- Reviewed: mainfefe263 includingPR41/43, APIdeployed0d52eb7 andworker0795c57 perAhmed9b514c5; web7775848 perLuke.
+
+## 2026-11-10 00:09 UTC — Hosted browser proof and final-main review
+
+- Branch/PR: anurup/pivot-demo-submission (#45). Updated judge submission and release evidence with a successful fresh hosted Playwright survey/site/save/role-denial run and real commit7ecdd453. Template/github provenance retained; OpenAI generation remains unproven.
+- Verified: hosted report14 checks, zero browser exceptions; main e3a8f08 frontend191/Node37, API66 passed2 skipped, integration10, production build. Prior queued survey eventually completed after5m38; fresh retry now completes. Manual phone screenshot still has excessive blank iframe space.
+- New release regression: independent reviewer found #/trail placeholder reintroduced by integration. Anurup is restoring the existing client/console inside its granted App path with App-level regression tests. Kunj/Luke still own public-link disclosure and iframe sizing; actual phone check pending. No false claim that all major findings are closed.
+- Reviewed main e3a8f08, Kunj b99166e tour isolation handoff, Ahmed9b514c5 rollout evidence, Luke0795c57 worker/cadence; scope and deployment boundaries remain explicit.
