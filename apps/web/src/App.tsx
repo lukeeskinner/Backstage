@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IncidentEvidence } from "./diagnostics/IncidentEvidence";
+import { TrailConsole } from "./diagnostics/TrailConsole";
+import { createPivotClient } from "./api/pivot";
 import { createClient, type ApiClient } from "./api/client";
 import { fetchTransport } from "./api/transport";
 import { useBoard } from "./hooks/useBoard";
@@ -28,7 +30,7 @@ import { NARRATION, TOUR, type TourContext } from "./tour/script";
 import { AppShell, BoardView, DevPanel, StatusView } from "./ui";
 import { createPivotApi, recallAttendeeId, type PivotApi } from "./pivot/client";
 import { createPivotMockTransport, MOCK_COMMIT_SUBJECT, PivotMock } from "./pivot/mock";
-import { fetchLatestSiteCommit, ProjectorSites, TrailPending } from "./pivot/ProjectorSites";
+import { fetchLatestSiteCommit, ProjectorSites } from "./pivot/ProjectorSites";
 import { SitePage } from "./pivot/SitePage";
 import { SurveyPage } from "./pivot/SurveyPage";
 import { TrendsPage } from "./pivot/TrendsPage";
@@ -170,6 +172,14 @@ export default function App() {
       }),
     [activePivotMock, token],
   );
+  const trailClient = useMemo(
+    () =>
+      createPivotClient({
+        transport: activePivotMock ? createPivotMockTransport(activePivotMock, MOCK_LATENCY_MS) : fetchTransport(API_BASE_URL),
+        getToken: () => token,
+      }),
+    [activePivotMock, token],
+  );
   const siteId = useSiteId();
 
   const registerProbe = useCallback((next: (() => void) | null) => {
@@ -230,7 +240,7 @@ export default function App() {
       ) : route === "trends" ? (
         <TrendsPage key={`trends-${identityId}-${credentialGeneration}`} api={pivot} />
       ) : route === "trail" ? (
-        <TrailPending />
+        <TrailConsole key={`trail-${identityId}-${credentialGeneration}`} pivot={trailClient} mockMode={mockActive} />
       ) : route === "history" ? (
         <HistoryView key={`history-${identityId}-${credentialGeneration}`} client={client} mockMode={mockActive} />
       ) : route === "me" && identity && identity.tier > 0 ? (
