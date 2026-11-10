@@ -183,3 +183,12 @@ Badge simulator, Radar, and Kubernetes. Newest entries at the bottom. See the [t
 - **Verified (Job `pivot-status-4`, organizer token read inside the pod)** · `/pivot/trends` 200, with `surveys 160, simulated 158, sites_ready 102, sites_failed 5, interactions 299, open_rate 0.89`. `/pivot/trail/search` 200. `/incidents` 200 with 3 incidents, so the incident product is still up.
 - **Live pins** · API `0d52eb7`, agent `0795c57`, web `7775848` (rolled by a teammate).
 - **Open** · Not mine: the privacy wording on the public capability link and the iframe height on the attendee site (Kunj and Luke, per Anurup's log). Mine: the phone check on cellular, which needs a person with a phone.
+
+## 2026-11-10 — Backlog drained, trail fix rolled to web
+
+- **Branch or PR** · `ali/pivot-final`, from main `1824f9f`. Cluster changes made through Radar.
+- **Backlog (Anurup's 23:56 note: "hold further waves / drain backlog; do not delete participant records")** · No further waves were run and no records were deleted. At 23:59 UTC: `surveys 162, sites_ready 149, sites_failed 5`, 8 still queued. The single worker drained the queue. Anurup then recorded a fresh hosted survey completing (`7ecdd45`).
+- **Web rollout (Anurup's "Kunj/Ahmed must roll the merged web source")** · At about 00:12 UTC, a guarded JSON patch (`test` that the current pin is `7775848`) set the `build-web` `CODE_SHA` on `deployment/web` to main `1824f9f23a61434fe5247d72896b9cd58dcf4587` (PR #46, trail restoration). Init passed through build and the vision install. No quota events. Rolled out 1/1.
+- **Verified** · https://backstage.cnh.radarhq.io/#/trail serves the restored "Agent ledger / Search the agent trail" console with Kind, Step, Tool and Outcome filters, and asks for a bearer token as it should. The served bundle contains the trail route.
+- **Live pins** · API `0d52eb7`, agent `0795c57`, web `1824f9f`.
+- **Open** · Public-link disclosure and the iframe blank height (Kunj and Luke), and the physical cellular phone check.
